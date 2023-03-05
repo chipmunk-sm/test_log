@@ -730,7 +730,7 @@ void FormatStringTestBase()
 
 
 
-	int64_t i64val = 9223372036854775807i64;
+    int64_t i64val = 9223372036854775807ll;
 #if 0
 	stringutils::FormatString("%" PRId32, i64val);
 	stringutils::FormatString(L"%" PRId32, i64val);
