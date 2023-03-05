@@ -14,6 +14,12 @@
 // flush data from the log buffer
 #define LOG_FLUSH()  CLogger::Instance().Flush();
 
+//use log in stream style  LOGSTREAMA(CLogger::eLogLevel::eLogLevel_info) << " Hi, there char log! HEX  0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << 5555;
+#define LOGSTREAMA(level) LogT<std::ostringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__)
+
+//use log in stream style  LOGSTREAMW(CLogger::eLogLevel::eLogLevel_info) << L" Hi, there wchar_t log! HEX  0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << 5555;
+#define LOGSTREAMW(level) LogT<std::wstringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__)
+
 
 #if defined(_MSC_VER)
 #define MSVC_COMPILER 1
@@ -115,9 +121,11 @@
 #pragma warning( disable : 4946 ) // reinterpret_cast used between related classes
 #pragma warning( disable : 5026 ) // move constructor was implicitly defined as deleted
 #pragma warning( disable : 5027 ) // move assignment operator was implicitly defined as deleted
-#pragma warning( disable : 5039 ) // pointer or reference to potentially throwing function passed to 'extern "C"' function under - EHc.Undefined behavior may occur if this function throws an exception.
-#pragma warning( disable : 5219 ) // implicit conversion from 'int' to 'float', possible loss of data
 
+#   if _MSC_VER >= 1900
+#   pragma warning( disable : 5039 ) // pointer or reference to potentially throwing function passed to 'extern "C"' function under - EHc.Undefined behavior may occur if this function throws an exception.
+#   pragma warning( disable : 5219 ) // implicit conversion from 'int' to 'float', possible loss of data
+#   endif
 #   if _MSC_VER >= 1934
 #   pragma warning( disable : 5262 ) // implicit fall-through occurs here
 #   pragma warning( disable : 5264 ) // 'const' variable is not used
@@ -300,34 +308,6 @@ constexpr std::chrono::milliseconds operator "" ms(unsigned long long x_val)
 // ============ START namespace helpers
 namespace helpers
 {
-class CDummyXFile
-{
-public:
-    CDummyXFile() {
-#if defined(WINDOWS_PLATFORM)
-        fopen_s(&m_dummyFile, "NUL", "wb");
-#else
-        m_dummyFile = fopen("/dev/null", "wb");
-#endif
-    }
-    ~CDummyXFile() {
-        if (m_dummyFile != nullptr)
-            fclose(m_dummyFile);
-    }
-
-
-    FILE* GetFilePtr() {
-        return m_dummyFile;
-    }
-private:
-    FILE* m_dummyFile = nullptr;
-    //void* operator new (size_t);
-
-    // Copy constructor
-    CDummyXFile(const CDummyXFile& t) = delete;
-    // Copy assignment operator
-    CDummyXFile & operator = (const CDummyXFile& t) = delete;
-};
 } // namespace helpers
 // ============ END namespace helpers
 
@@ -654,80 +634,130 @@ namespace stringutils
         }
         return std::string();
     }
-  
 
-    template<typename... TArg>
-    inline int dummyPrintX(FILE* const _Stream,  _Printf_format_string_  const char* const _Format, TArg...args) {
-        return std::vfprintf(_Stream, _Format, args...);
-    }
 
-    template<typename... TArg>
-    inline int dummyPrintX(FILE* const _Stream, _Printf_format_string_ const wchar_t* const _Format, TArg...args) {
-        return std::vfwprintf(_Stream, _Format, args...);
-    }
 
-    template<typename... TArg>
-    inline int printX(std::vector<char>& buffer, _Printf_format_string_ const char* const _Format, TArg...args) {
-        return std::vsnprintf(buffer.data(), buffer.size() - 1, _Format, args...);
-    }
 
-    template<typename... TArg>
-    inline int printX(std::vector<wchar_t>& buffer, _Printf_format_string_ const wchar_t* const _Format, TArg...args) {
-        return std::vswprintf(buffer.data(), buffer.size() - 1, _Format, args...);
-    }
+#define USE_BUFFER_STRING_FORMAT
+#ifdef USE_BUFFER_STRING_FORMAT
 
-    inline const std::string retType(const std::string& val) { return val; };
-    inline const std::wstring retType(const std::wstring& val) { return val; };
+	template<typename... TArg>
+	inline int printX(std::vector<char>& buffer, _Printf_format_string_ const char* const szFmt, TArg...args) {
+		return std::vsnprintf(buffer.data(), buffer.size() - 1, szFmt, args...);
+	}
 
-    template<typename T, typename...>
-    auto FormatStringF(FILE* const stream, _Printf_format_string_ T const* const _Format, ...)
+	template<typename... TArg>
+	inline int printX(std::vector<wchar_t>& buffer, _Printf_format_string_ const wchar_t* const szFmt, TArg...args) {
+		return std::vswprintf(buffer.data(), buffer.size() - 1, szFmt, args...);
+	}
+
+    /// <summary>
+    /// Format string based on vswprintf or vsnprintf
+    /// </summary>
+    /// <typeparam name="Tstring">Type of format string</typeparam>
+    /// <typeparam name="TStartSize">Startup size for buffer</typeparam>
+    /// <typeparam name="TStepSize">Step to increase buffer size</typeparam>
+    /// <typeparam name="TMaxSize">Maximum output buffer size</typeparam>
+    /// <param name="szFmt">Format string</param>
+    /// <returns>Formated std::string or std::wstring</returns>
+    template<size_t TStartSize = 256, size_t TStepSize = 256, size_t TMaxSize = 8192, typename Tstring>
+    auto FormatString(_Printf_format_string_ const Tstring szFmt, ...)
     {
-        std::vector<typename std::remove_const<typename std::remove_pointer<decltype(_Format)>::type>::type> buffer;
-        {
+        static_assert(TStepSize > 1, "");
+        static_assert(TStartSize + TStepSize < TMaxSize, "");
+
+#if 0
+        //first way
+        constexpr auto isCharS = std::is_same<Tstring, std::string>::value;
+        constexpr auto isCharC = std::is_convertible<Tstring, const char*>::value;
+        constexpr auto isChar = isCharS || isCharC;
+        using sTyp1 = typename std::conditional< isChar, char, wchar_t>::type;
+
+        // second way, there is we cant use std::string or std::wstring
+        using sTyp = typename std::remove_const<std::remove_pointer<Tstring>::type>::type;
+
+        static_assert(std::is_same<sTyp, sTyp1>::value, "");
+#else
+        constexpr auto isCharS = std::is_same<Tstring, std::string>::value;
+        constexpr auto isCharC = std::is_convertible<Tstring, const char*>::value;
+        constexpr auto isChar = isCharS || isCharC;
+        using sTyp = typename std::conditional< isChar, char, wchar_t>::type;
+#endif
+
+        std::basic_string<sTyp> formatString;
+
+        if (szFmt == nullptr)
+            return formatString;
+
+        formatString = szFmt;
+        const auto &fmtSize = formatString.length();
+        if (fmtSize < 1)
+            return formatString;
+
+        std::vector<sTyp> buffer(TStartSize, 0);
+        do {
+            int size = -1;
             va_list argsx;
-            va_start(argsx, _Format);
-            auto size = dummyPrintX(stream, _Format, argsx);//args...
-            va_end(argsx);
-            if (size < 1) {
-                buffer.resize(1ULL, 0);
-                return retType(buffer.data());
+            va_start(argsx, szFmt);
+            try {
+                //size = vswprintf(buffer.data(), buffer.size() - 1, szFmt, argsx);
+                //size = vsnprintf(buffer.data(), buffer.size() - 1, szFmt, argsx);
+                size = stringutils::printX(buffer, szFmt, argsx);
             }
-            buffer.resize(2ULL + size, 0);
-        }
-        if (buffer.size() > 1)
-        {
-            va_list argsx;
-            va_start(argsx, _Format);
-            auto size = printX(buffer, _Format, argsx);
+            catch (...) {
+                _ASSERT(0);
+                size = 0;
+            }
             va_end(argsx);
-            if (size < 1)
-                buffer[0] = 0;
-        }
-        return retType(buffer.data());
-    };
 
-    template<typename...Targ>
-    inline std::string FormatString(FILE* const stream, _Printf_format_string_ const char* const _Format, Targ...arg) {
-        return FormatStringF(stream, _Format, arg...);
+            if (size == 0) {
+                break;
+            }
+
+            // size determined and not enough bytes in the buffer 
+            if (size >= static_cast<decltype(size)>(buffer.size() - 1)) {
+
+                const auto& newSize = 2ULL + size;
+
+                if (newSize > TMaxSize) {
+                    _ASSERT(0);
+                    break;
+                }
+
+                buffer.resize(newSize, 0);
+                continue;
+
+            }
+
+            // size not determined (vswprintf)
+            if (size == -1) {
+
+                const auto& newSize = static_cast<size_t>(buffer.size() + TStepSize);
+
+                if (newSize > TMaxSize) {
+                    _ASSERT(0);
+                    break;
+                }
+
+                buffer.resize(newSize, 0);
+                continue;
+
+            }
+
+            if (size < 0)
+                break;
+
+            formatString = buffer.data();
+            return formatString;
+
+
+        } while (1);
+
+        formatString.clear();
+        return formatString;
     }
+#endif // USE_BUFFER_STRING_FORMAT
 
-    template<typename...Targ>
-    inline std::wstring FormatString(FILE* const stream, _Printf_format_string_ wchar_t const* const _Format, Targ...arg) {
-        return FormatStringF(stream, _Format, arg...);
-    }
-
-    template<typename...Targ>
-    inline std::string FormatString(_Printf_format_string_ const char* const _Format, Targ...arg) {
-        helpers::CDummyXFile xf;
-        return FormatStringF(xf.GetFilePtr(), _Format, arg...);
-    };
-
-    template<typename...Targ>
-    inline std::wstring FormatString(_Printf_format_string_ wchar_t const* const _Format, Targ...arg) {
-        helpers::CDummyXFile xf;
-        return FormatStringF(xf.GetFilePtr(), _Format, arg...);
-    };
- 
     /// <summary>
     /// std::wstring = stringutils::Latin1ToStdWString("")
     /// </summary>
@@ -915,20 +945,8 @@ namespace info {
         STRAPPEND(appv, ")] ");
 #endif // QT_VERSION
 
-#if defined(_MSVC_LANG)
-#   if   (_MSVC_LANG == 199711L)
-        STRAPPEND(appv, "std:C++98 ");
-#   elif   (_MSVC_LANG == 201402L)
-        STRAPPEND(appv, "std:C++14 ");
-#   elif (_MSVC_LANG == 201703L)
-        STRAPPEND(appv, "std:C++17 ");
-#   elif (_MSVC_LANG == 202002L)
-        STRAPPEND(appv, "std:C++20 ");
-#   else
-#   error  std:c++??
-#   endif
-// ~_MSVC_LANG
-#elif defined(__cplusplus)
+#if defined(__cplusplus)
+
 #   if   (__cplusplus == 199711L)
         STRAPPEND(appv, "std:C++98 ");
 #   elif (__cplusplus == 201103L)
@@ -937,12 +955,34 @@ namespace info {
         STRAPPEND(appv, "std:C++14 ");
 #   elif   (__cplusplus == 201703L)
         STRAPPEND(appv, "std:C++17 ");
-#   elif (_MSVC_LANG == 202002L)
+#   elif (__cplusplus == 202002L)
         STRAPPEND(appv, "std:C++20 ");
-#else
-     #error  std:c++??
-#endif
+#   elif (__cplusplus == 202004L)
+        STRAPPEND(appv, "std:C++20 ");
+#   else
+#       error  std:c++??
+#   endif
 #endif // defined(__cplusplus)
+
+
+#if defined(_MSVC_LANG)
+
+#   if   (_MSVC_LANG == 199711L)
+        STRAPPEND(appv, "(MSVC) std:C++98 ");
+#   elif   (_MSVC_LANG == 201402L)
+        STRAPPEND(appv, "(MSVC) std:C++14 ");
+#   elif (_MSVC_LANG == 201703L)
+        STRAPPEND(appv, "(MSVC) std:C++17 ");
+#   elif (_MSVC_LANG == 202002L)
+        STRAPPEND(appv, "(MSVC) std:C++20 ");
+#   elif (_MSVC_LANG == 202002L)
+        STRAPPEND(appv, "(MSVC) std:C++20 ");
+#   elif (_MSVC_LANG == 202004L)
+        STRAPPEND(appv, "(MSVC) std:C++20+latest");
+#   else
+#       error  std:c++??
+#   endif
+#endif // defined(_MSVC_LANG)
 
 #ifdef __GLIBC__
   STRAPPEND(appv, "GNU libc [");
@@ -1006,10 +1046,10 @@ namespace info {
         STRAPPEND(appv, quoteStr(_MSC_FULL_VER));
         STRAPPEND(appv, ") ");
 
-#if (_MSC_VER >= 1935)
+#if (_MSC_VER >= 1936)
         STRAPPEND(appv, " VS??");
 #error undefined
-#elif (_MSC_VER >= 1930)
+#elif (_MSC_VER >= 1935)
         STRAPPEND(appv, "VS2022");
 #elif(_MSC_VER >= 1920)
         STRAPPEND(appv, "VS2019");
@@ -1095,24 +1135,25 @@ public:
     /// return string describing error number
     static std::wstring GetErrorStringW(const int32_t errorCode);
 
-    template<typename T, typename...Targs>
-#if defined(MSVC_COMPILER)
-    void LogMess(eLogLevel lvl, const char* szFile, const char* szFunc, const int iLine, _Printf_format_string_ const T szFmt, Targs...args)
-#else
-    void LogMess(eLogLevel lvl, const char* szFile, const char* szFunc, const int iLine, const T szFmt, Targs...args) //__attribute__((format(printf, 5, 6)))
-#endif
+    template<typename Tstring, typename...Targs>
+    void LogMess(eLogLevel lvl, const char* szFile, const char* szFunc, const int iLine, _Printf_format_string_ Tstring szFmt, Targs...args)
     {
 
         if (m_bExit || !(m_logLevel >= lvl))
             return;
 
-        auto logstr = GetTimestamp(szFmt);
+        constexpr auto isCharS = std::is_same<Tstring, std::string>::value;
+        constexpr auto isCharC = std::is_convertible<Tstring, const char*>::value;
+        constexpr auto isChar = isCharS || isCharC;
+        using sTyp = typename std::conditional< isChar, char, wchar_t>::type;
 
-        const auto baseFmt = std::basic_string<typename decltype(logstr)::value_type>(szFmt);
+        std::basic_string<sTyp> baseFmt(szFmt);
+
+        auto logstr = GetTimestamp(baseFmt);
 
         logstr.append(GetErrorLevelStr(lvl, baseFmt));
 
-        auto xres = stringutils::FormatString(m_dummyFile, baseFmt.c_str(), args...);
+        auto xres = FormatStringF(baseFmt.c_str(), args...);
         logstr.append(xres);
 
         if (m_displayExtInfo)
@@ -1123,19 +1164,23 @@ public:
 
     }
 
+public: 
+    std::string FormatStringF(_Printf_format_string_ const char* const szFmt, ...);;
+    std::wstring FormatStringF(_Printf_format_string_ const wchar_t* const szFmt, ...);;
+
 private:
 
-    static const wchar_t* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::wstring&);
-    static const char* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::string&);
+    const wchar_t* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::wstring&);
+    const char* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::string&);
 
-    static std::string GetTimestamp(const std::string&);
-    static std::wstring GetTimestamp(const std::wstring&);
+    std::string GetTimestamp(const std::string&);
+    std::wstring GetTimestamp(const std::wstring&);
 
-    static void PrintExtInfo(std::string& val, const char* szFile, const char* szFunc, const int iLine);
-    static void PrintExtInfo(std::wstring& val, const char* szFile, const char* szFunc, const int iLine);
+    void PrintExtInfo(std::string& val, const char* szFile, const char* szFunc, const int iLine);
+    void PrintExtInfo(std::wstring& val, const char* szFile, const char* szFunc, const int iLine);
 
-    static void BufferOut(const std::string& val, bool isError);
-    static void BufferOut(const std::wstring& val, bool isError);
+    void BufferOut(const std::string& val, bool isError);
+    void BufferOut(const std::wstring& val, bool isError);
 
 private:
     FILE* m_dummyFile = nullptr;
@@ -1146,26 +1191,6 @@ private:
     bool m_bExit = false;
     uint8_t dummy[2]{};
 
-public: 
-
-    void LogMessTest()
-    {
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, "szFmt %s", "args...");
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, std::string("szFmt %s"), "args...");
-
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, L"szFmt %ls", L"args...");
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, std::wstring(L"szFmt %ls"), L"args...");
-
-        char arr1[] = "hello %s";
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, arr1, "args...");
-        wchar_t arr2[] = L"hello %s";
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, arr2, L"args...");
-
-        const std::string cp1("szFmt %s");
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, cp1, "args...");
-        const std::wstring cp2(L"szFmt %ls");
-        LogMess(eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, cp2, L"args...");
-    }
 };
 
 #define LOG_TRACE(messfmt, ...) { CLogger::Instance().LogMess(CLogger::eLogLevel_trace, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__); };
@@ -1179,8 +1204,6 @@ public:
 //**************************************
 //+ Stream log
 //**************************************
-#define LOGSTREAMA(level) LogT<std::ostringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__)
-#define LOGSTREAMW(level) LogT<std::wstringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__)
 
 
 /// <summary>

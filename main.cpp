@@ -3,28 +3,17 @@
 
 #if defined(MSVC_COMPILER)
 #pragma warning(push)
-#pragma warning(disable : 4365) // conversion from '' to ''
-#pragma warning(disable : 4668) // is not defined as a preprocessor macro
-#pragma warning(disable : 4710) // function not inlined
-#pragma warning(disable : 4711) // selected for automatic inline expansion
-#pragma warning(disable : 4820) // bytes padding added after data member
-#pragma warning(disable : 5039) // pointer or reference to potentially throwing
-// function passed to 'extern "C"' function
-// under - EHc.Undefined behavior may occur if
-// this function throws an exception.
-#pragma warning(                                                               \
-    disable : 4625) // copy constructor was implicitly defined as deleted
-#pragma warning(                                                               \
-    disable : 5026) // move constructor was implicitly defined as deleted
-#pragma warning(disable : 4626) // assignment operator was implicitly defined as
-// deleted(compiling source file main.cpp)
-#pragma warning(                                                               \
-    disable : 5027) // move assignment operator was implicitly defined as
-// deleted(compiling source file main.cpp)
-#pragma warning(                                                               \
-    disable : 4514) //  unreferenced inline function has been removed
-
-
+#pragma warning( disable : 4365) // conversion from '' to ''
+#pragma warning( disable : 4668) // is not defined as a preprocessor macro
+#pragma warning( disable : 4710) // function not inlined
+#pragma warning( disable : 4711) // selected for automatic inline expansion
+#pragma warning( disable : 4820) // bytes padding added after data member
+#pragma warning( disable : 5039) // pointer or reference to potentially throwing
+#pragma warning( disable : 4625) // copy constructor was implicitly defined as deleted
+#pragma warning( disable : 5026) // move constructor was implicitly defined as deleted
+#pragma warning( disable : 4626) // assignment operator was implicitly defined as
+#pragma warning( disable : 5027) // move assignment operator was implicitly defined as
+#pragma warning( disable : 4514) // unreferenced inline function has been removed
 #endif
 
 // #include <QCoreApplication>
@@ -266,7 +255,9 @@ bool test_StringConvert()
         const auto rangeStart = 0x20;
         const auto rangeEnd = 512;
         for (int val = rangeStart; val < rangeEnd; val++) {
-            const auto str1W = std::wstring(1, static_cast<wchar_t>(val));
+            const auto &testChar = val;
+            const auto testWChar =static_cast<wchar_t>(testChar);
+            const auto str1W = std::wstring(1, testWChar);
             auto ret1A = stringutils::ConvertW2A(str1W, true);
             auto ret1W = stringutils::ConvertA2W(ret1A, true);
             if (str1W == ret1W)
@@ -348,12 +339,15 @@ bool test_StringConvert()
 void testLogOutput()
 {
     {
+
+#if !defined(_MSC_VER) && defined(__cplusplus) && (__cplusplus < 202002L)
         LOG_TRACE("------------------- Start Log EXT CHARS -------------------");
         LOG_TRACE( u8"6 - sym abvgiy [абвгіЇ]");
         LOG_TRACE( u8"6 - sym abvgiy [абвгіЇ]");
         LOG_TRACE( u8"3 - sym uoa [üöä]");
         LOG_TRACE( u8"5 - [こんにちは]");
         LOG_TRACE("------------------- End Log EXT CHARS -------------------");
+#endif
 
         LOG_TRACE("------------------- Start Log empty lines -------------------");
         LOG_TRACE(std::string("").c_str());
@@ -544,14 +538,20 @@ auto strOverloadAndTemplate(T val)
     return retString;
 }
 
+/// <summary>
+/// make std::string or std::wstring from std::string, std::wstring, const char *,const wchar_t*
+/// </summary>
+/// <typeparam name="T">std::string, std::wstring, const char*,const wchar_t*</typeparam>
+/// <param name="val">text </param>
+/// <returns>std::string or std::wstring with text</returns>
 template<typename T>
 auto strTemplate(T val)
 {
     std::basic_string<
-            typename std::conditional<(((std::is_same<T, std::string>::value) || std::is_convertible<T, char const*>::value)),
-            char, wchar_t
-            >::type>
-            retString(val);
+        typename std::conditional<(((std::is_same<T, std::string>::value) || std::is_convertible<T, char const*>::value)),
+        char, wchar_t
+    >::type>
+        retString(val);
     return retString;
 }
 
@@ -673,199 +673,252 @@ std::wstring TestRemoveConstAndPointer(const T* const _Format) {
 
 /////////////////////////////////////////////////////////////
 
-template<typename T, typename ...TArg>
-#if defined(_MSC_VER)
-auto FormatStringT2(_Printf_format_string_ T const* const _Format, TArg...arg)
-#else
-auto FormatStringT2(T const* const _Format, TArg...arg) //__attribute__((format(printf, 1, 2)))
-#endif
-{
-    helpers::CDummyXFile x;
-    return FormatString(x.GetFilePtr(), _Format, arg...);
-}
 
 void FormatStringTestBase()
 {
+	const wchar_t* ptrW = nullptr;
+	stringutils::FormatString(ptrW);
+	const char* ptrA = nullptr;
+	stringutils::FormatString(ptrA);
+	const char* ptrA1 = "";
+	stringutils::FormatString(ptrA1);
+	stringutils::FormatString(L"");
+	stringutils::FormatString("");
 
-    // declare and initialize signed variables with max values
-    int8_t i8_max = INT8_MAX;  // 127
-    int16_t i16_max = INT16_MAX; // 32767
-    int32_t i32_max = INT32_MAX; // 2147483647
-    int64_t i64_max = INT64_MAX; // 9223372036854775807
+	auto resAs1 = stringutils::FormatString<16, 256, 8192>("123456789012345");
+	_ASSERT(resAs1 == std::string("123456789012345"));
 
-    // declare and initialize signed variables with min values
-    int8_t i8_min = INT8_MIN;  // -128
-    int16_t i16_min = INT16_MIN; // -32768
-    int32_t i32_min = INT32_MIN; // -2147483648
-    int64_t i64_min = INT64_MIN; // -9223372036854775808
+	auto resWs1 = stringutils::FormatString<16, 256, 8192>(L"123456789012345");
+	_ASSERT(resWs1 == std::wstring(L"123456789012345"));
 
-    // declare and initialize unsigned variables with max values
-    uint8_t u8_max = UINT8_MAX;  // 255
-    uint16_t u16_max = UINT16_MAX; // 65535
-    uint32_t u32_max = UINT32_MAX; // 4294967295
-    uint64_t u64_max = UINT64_MAX; // 18446744073709551615
+	auto resAs2 = stringutils::FormatString<16, 256, 8192>("1234567890123456");
+	_ASSERT(resAs2 == std::string("1234567890123456"));
 
-    {
-        auto strParamA = "some1234teststring";
-        auto strParamA2 = "End teststring";
+	auto resWs2 = stringutils::FormatString<16, 256, 8192>(L"1234567890123456");
+	_ASSERT(resWs2 == std::wstring(L"1234567890123456"));
 
-        auto srcA1 =
-            "[" PRF_CH_STRING "==some1234teststring] "
-            "[%" PRId8 "==127] "
-            "[%" PRId16 "==32767] "
-            "[%" PRId32 "==2147483647] "
-            "[%" PRId64 "==9223372036854775807] "
+	auto resAs3 = stringutils::FormatString<16, 256, 8192>("12345678901234567");
+	_ASSERT(resAs3 == std::string("12345678901234567"));
 
-            "[%" PRId8 "==-128] "
-            "[%" PRId16 "==-32768] "
-            "[%" PRId32 "==2147483648] "
-            "[%" PRId64 "==-9223372036854775808] "
+	auto resWs3 = stringutils::FormatString<16, 256, 8192>(L"12345678901234567");
+	_ASSERT(resWs3 == std::wstring(L"12345678901234567"));
 
-            "[%" PRIu8 "==255] "
-            "[%" PRIu16 "==65535] "
-            "[%" PRIu32 "==4294967295] "
-            "[%" PRIu64 "==18446744073709551615] "
-            "[" PRF_CH_STRING "==End teststring]"
-                ;
-        auto resA1 = std::string(
-            "[some1234teststring==some1234teststring] "
-            "[127==127] "
-            "[32767==32767] "
-            "[2147483647==2147483647] "
-            "[9223372036854775807==9223372036854775807] "
-            "[-128==-128] "
-            "[-32768==-32768] "
-            "[-2147483648==2147483648] "
-            "[-9223372036854775808==-9223372036854775808] "
-            "[255==255] "
-            "[65535==65535] "
-            "[4294967295==4294967295] "
-            "[18446744073709551615==18446744073709551615] "
-            "[End teststring==End teststring]");
+	auto resAs4 = stringutils::FormatString<16, 256, 8192>("123456789012345678");
+	_ASSERT(resAs4 == std::string("123456789012345678"));
 
-    auto tst1 = stringutils::FormatString(srcA1,
-        strParamA,
-        i8_max,  // 127
-        i16_max, // 32767
-        i32_max, // 2147483647
-        i64_max, // 9223372036854775807
+	auto resWs4 = stringutils::FormatString<16, 256, 8192>(L"123456789012345678");
+	_ASSERT(resWs4 == std::wstring(L"123456789012345678"));
 
-        // declare and initialize signed variables with min values
-        i8_min,  // -128
-        i16_min, // -32768
-        i32_min, // -2147483648
-        i64_min, // -9223372036854775808
+	{
+		int64_t i64val1 = INT64_MAX;
+		auto resWs = stringutils::FormatString(L"[0x%08" PRIX64 "0x%08" PRIX64 "0x%08" PRIX64 "0x%08" PRIX64 "0x%08" PRIX64 "0x%08" PRIX64 " " PRF_CH_STRING "]",
+			i64val1, i64val1, i64val1, i64val1, i64val1, i64val1,
+			L"12345678890123456788901234567889012345678890123456788901234567889012345678890123456788901234567889012345678890"
+			"12345678890123456788901234567889012345678890123456788901234567889012345678890123456788901234567889012345678890"
+			"12345678890123456788901234567889012345678890123456788901234567889012345678890123456788901234567889012345678890"
+		);
 
-        // declare and initialize unsigned variables with max values
-        u8_max,  // 255
-        u16_max, // 65535
-        u32_max, // 4294967295
-        u64_max,  // 18446744073709551615
-        strParamA2
-        );
+		_ASSERT(resWs == std::wstring(
+			L"["
+			"0x7FFFFFFFFFFFFFFF0x7FFFFFFFFFFFFFFF0x7FFFFFFFFFFFFFFF0x7FFFFFFFFFFFFFFF0x7FFFFFFFFFFFFFFF0x7FFFFFFFFFFFFFFF"
+			" "
+			"12345678890123456788901234567889012345678890123456788901234567889012345678890123456788901234567889012345678890"
+			"12345678890123456788901234567889012345678890123456788901234567889012345678890123456788901234567889012345678890"
+			"12345678890123456788901234567889012345678890123456788901234567889012345678890123456788901234567889012345678890"
+			"]"));
+	}
 
-        _ASSERT(tst1 == resA1);
-        UNREFERENCED_PARAMETER_LOG(tst1);
-        UNREFERENCED_PARAMETER_LOG(resA1);
-    }
-    {
-        auto strParamW = L"some1234teststring";
-        auto strParamW2 = L"End teststring";
-        auto srcW1 =
-            L"[" PRF_W_STRING "==some1234teststring] "
-            "[%" PRId8 "==127] "
-            "[%" PRId16 "==32767] "
-            "[%" PRId32 "==2147483647] "
-            "[%" PRId64 "==9223372036854775807] "
 
-            "[%" PRId8 "==-128] "
-            "[%" PRId16 "==-32768] "
-            "[%" PRId32 "==2147483648] "
-            "[%" PRId64 "==-9223372036854775808] "
 
-            "[%" PRIu8 "==255] "
-            "[%" PRIu16 "==65535] "
-            "[%" PRIu32 "==4294967295] "
-            "[%" PRIu64 "==18446744073709551615] "
-            "[" PRF_W_STRING "==End teststring]"
-            ;
+	int64_t i64val = 9223372036854775807i64;
+#if 0
+	stringutils::FormatString("%" PRId32, i64val);
+	stringutils::FormatString(L"%" PRId32, i64val);
+#else
+	stringutils::FormatString("%" PRId64, i64val);
+	stringutils::FormatString(L"%" PRId64, i64val);
+#endif // 0
 
-        auto resW1 = std::wstring(
-            L"[some1234teststring==some1234teststring] "
-            L"[127==127] "
-            L"[32767==32767] "
-            L"[2147483647==2147483647] "
-            L"[9223372036854775807==9223372036854775807] "
-            L"[-128==-128] "
-            L"[-32768==-32768] "
-            L"[-2147483648==2147483648] "
-            L"[-9223372036854775808==-9223372036854775808] "
-            L"[255==255] "
-            L"[65535==65535] "
-            L"[4294967295==4294967295] "
-            L"[18446744073709551615==18446744073709551615] "
-            L"[End teststring==End teststring]");
 
-        auto tst1 = stringutils::FormatString(srcW1,
-            strParamW,
-            i8_max,  // 127
-            i16_max, // 32767
-            i32_max, // 2147483647
-            i64_max, // 9223372036854775807
+	// declare and initialize signed variables with max values
+	int8_t i8_max = INT8_MAX;  // 127
+	int16_t i16_max = INT16_MAX; // 32767
+	int32_t i32_max = INT32_MAX; // 2147483647
+	int64_t i64_max = INT64_MAX; // 9223372036854775807
 
-            // declare and initialize signed variables with min values
-            i8_min,  // -128
-            i16_min, // -32768
-            i32_min, // -2147483648
-            i64_min, // -9223372036854775808
+	// declare and initialize signed variables with min values
+	int8_t i8_min = INT8_MIN;  // -128
+	int16_t i16_min = INT16_MIN; // -32768
+	int32_t i32_min = INT32_MIN; // -2147483648
+	int64_t i64_min = INT64_MIN; // -9223372036854775808
 
-            // declare and initialize unsigned variables with max values
-            u8_max,  // 255
-            u16_max, // 65535
-            u32_max, // 4294967295
-            u64_max,  // 18446744073709551615
-            strParamW2
-            );
+	// declare and initialize unsigned variables with max values
+	uint8_t u8_max = UINT8_MAX;  // 255
+	uint16_t u16_max = UINT16_MAX; // 65535
+	uint32_t u32_max = UINT32_MAX; // 4294967295
+	uint64_t u64_max = UINT64_MAX; // 18446744073709551615
 
-            _ASSERT(tst1 == resW1);
-            UNREFERENCED_PARAMETER_LOG(tst1);
-            UNREFERENCED_PARAMETER_LOG(resW1);
-    }
-    _ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRId8  "]]", L"test -128", -128)
-            == std::wstring(L"[VAL [test -128] [-128]]"));
+	{
+		auto strParamA = "some1234teststring";
+		auto strParamA2 = "End teststring";
 
-    _ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRId16 "]]", L"test -32767", -32767)
-            == std::wstring(L"[VAL [test -32767] [-32767]]"));
+		auto srcA1 =
+			"[" PRF_CH_STRING "==some1234teststring] "
+			"[%" PRId8 "==127] "
+			"[%" PRId16 "==32767] "
+			"[%" PRId32 "==2147483647] "
+			"[%" PRId64 "==9223372036854775807] "
 
-    _ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRId32 "]]", L"test -2147483647", -2147483647)
-            == std::wstring(L"[VAL [test -2147483647] [-2147483647]]"));
+			"[%" PRId8 "==-128] "
+			"[%" PRId16 "==-32768] "
+			"[%" PRId32 "==2147483648] "
+			"[%" PRId64 "==-9223372036854775808] "
 
-    _ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRIu8  "]]", L"test 255", 255)
-            == std::wstring(L"[VAL [test 255] [255]]"));
+			"[%" PRIu8 "==255] "
+			"[%" PRIu16 "==65535] "
+			"[%" PRIu32 "==4294967295] "
+			"[%" PRIu64 "==18446744073709551615] "
+			"[" PRF_CH_STRING "==End teststring]"
+			;
+		auto resA1 = std::string(
+			"[some1234teststring==some1234teststring] "
+			"[127==127] "
+			"[32767==32767] "
+			"[2147483647==2147483647] "
+			"[9223372036854775807==9223372036854775807] "
+			"[-128==-128] "
+			"[-32768==-32768] "
+			"[-2147483648==2147483648] "
+			"[-9223372036854775808==-9223372036854775808] "
+			"[255==255] "
+			"[65535==65535] "
+			"[4294967295==4294967295] "
+			"[18446744073709551615==18446744073709551615] "
+			"[End teststring==End teststring]");
 
-    _ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRIu16 "]]", L"test 65535", 65535)
-            == std::wstring(L"[VAL [test 65535] [65535]]"));
+		auto tst1 = stringutils::FormatString(srcA1,
+			strParamA,
+			i8_max,  // 127
+			i16_max, // 32767
+			i32_max, // 2147483647
+			i64_max, // 9223372036854775807
 
-    _ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRIu32 "]]", L"test 4294967295", 4294967295)
-            == std::wstring(L"[VAL [test 4294967295] [4294967295]]"));
+			// declare and initialize signed variables with min values
+			i8_min,  // -128
+			i16_min, // -32768
+			i32_min, // -2147483648
+			i64_min, // -9223372036854775808
 
-    _ASSERT(stringutils::FormatString("[%" PRIu64 "][" PRF_CH_STRING "]", 33ull, "33")
-            == std::string("[33][33]"));
+			// declare and initialize unsigned variables with max values
+			u8_max,  // 255
+			u16_max, // 65535
+			u32_max, // 4294967295
+			u64_max,  // 18446744073709551615
+			strParamA2
+		);
 
-    _ASSERT(stringutils::FormatString(L"[%" PRId64 "][" PRF_W_STRING "]", 36ll, L"36")
-            == std::wstring(L"[36][36]"));
-    
-    _ASSERT(stringutils::FormatString("[" PRF_CH_STRING "][%" PRId64 "]", "9223372036854775807", 0x7FFFFFFFFFFFFFFFll)
-            == std::string("[9223372036854775807][9223372036854775807]"));
+		_ASSERT(tst1 == resA1);
+		UNREFERENCED_PARAMETER_LOG(tst1);
+		UNREFERENCED_PARAMETER_LOG(resA1);
+	}
+	{
+		auto strParamW = L"some1234teststring";
+		auto strParamW2 = L"End teststring";
+		auto srcW1 =
+			L"[" PRF_W_STRING "==some1234teststring] "
+			"[%" PRId8 "==127] "
+			"[%" PRId16 "==32767] "
+			"[%" PRId32 "==2147483647] "
+			"[%" PRId64 "==9223372036854775807] "
 
-    _ASSERT(stringutils::FormatString("[%" PRId64 "][" PRF_CH_STRING "]", 0x7FFFFFFFFFFFFFFFll, "9223372036854775807")
-            == std::string("[9223372036854775807][9223372036854775807]"));
+			"[%" PRId8 "==-128] "
+			"[%" PRId16 "==-32768] "
+			"[%" PRId32 "==2147483648] "
+			"[%" PRId64 "==-9223372036854775808] "
 
-    _ASSERT(stringutils::FormatString(L"[" PRF_W_STRING L"][%" TOWSTRING(PRId64) L"]", L"9223372036854775807", 0x7FFFFFFFFFFFFFFFll)
-            == std::wstring(L"[9223372036854775807][9223372036854775807]"));
+			"[%" PRIu8 "==255] "
+			"[%" PRIu16 "==65535] "
+			"[%" PRIu32 "==4294967295] "
+			"[%" PRIu64 "==18446744073709551615] "
+			"[" PRF_W_STRING "==End teststring]"
+			;
 
-    _ASSERT(stringutils::FormatString(L"[%" TOWSTRING(PRId64) L"][" PRF_W_STRING L"]", 0x7FFFFFFFFFFFFFFFll, L"9223372036854775807")
-            == std::wstring(L"[9223372036854775807][9223372036854775807]"));
+		auto resW1 = std::wstring(
+			L"[some1234teststring==some1234teststring] "
+			L"[127==127] "
+			L"[32767==32767] "
+			L"[2147483647==2147483647] "
+			L"[9223372036854775807==9223372036854775807] "
+			L"[-128==-128] "
+			L"[-32768==-32768] "
+			L"[-2147483648==2147483648] "
+			L"[-9223372036854775808==-9223372036854775808] "
+			L"[255==255] "
+			L"[65535==65535] "
+			L"[4294967295==4294967295] "
+			L"[18446744073709551615==18446744073709551615] "
+			L"[End teststring==End teststring]");
+
+		auto tst1 = stringutils::FormatString(srcW1,
+			strParamW,
+			i8_max,  // 127
+			i16_max, // 32767
+			i32_max, // 2147483647
+			i64_max, // 9223372036854775807
+
+			// declare and initialize signed variables with min values
+			i8_min,  // -128
+			i16_min, // -32768
+			i32_min, // -2147483648
+			i64_min, // -9223372036854775808
+
+			// declare and initialize unsigned variables with max values
+			u8_max,  // 255
+			u16_max, // 65535
+			u32_max, // 4294967295
+			u64_max,  // 18446744073709551615
+			strParamW2
+		);
+
+		_ASSERT(tst1 == resW1);
+		UNREFERENCED_PARAMETER_LOG(tst1);
+		UNREFERENCED_PARAMETER_LOG(resW1);
+	}
+	_ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRId8  "]]", L"test -128", -128)
+		== std::wstring(L"[VAL [test -128] [-128]]"));
+
+	_ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRId16 "]]", L"test -32767", -32767)
+		== std::wstring(L"[VAL [test -32767] [-32767]]"));
+
+	_ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRId32 "]]", L"test -2147483647", -2147483647)
+		== std::wstring(L"[VAL [test -2147483647] [-2147483647]]"));
+
+	_ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRIu8  "]]", L"test 255", 255U)
+		== std::wstring(L"[VAL [test 255] [255]]"));
+
+	_ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRIu16 "]]", L"test 65535", 65535U)
+		== std::wstring(L"[VAL [test 65535] [65535]]"));
+
+	_ASSERT(stringutils::FormatString(L"[VAL [" PRF_W_STRING "] [%" PRIu32 "]]", L"test 4294967295", 4294967295UL)
+		== std::wstring(L"[VAL [test 4294967295] [4294967295]]"));
+
+	_ASSERT(stringutils::FormatString("[%" PRIu64 "][" PRF_CH_STRING "]", 33ull, "33")
+		== std::string("[33][33]"));
+
+	_ASSERT(stringutils::FormatString(L"[%" PRId64 "][" PRF_W_STRING "]", 36ll, L"36")
+		== std::wstring(L"[36][36]"));
+
+	_ASSERT(stringutils::FormatString("[" PRF_CH_STRING "][%" PRId64 "]", "9223372036854775807", 0x7FFFFFFFFFFFFFFFll)
+		== std::string("[9223372036854775807][9223372036854775807]"));
+
+	_ASSERT(stringutils::FormatString("[%" PRId64 "][" PRF_CH_STRING "]", 0x7FFFFFFFFFFFFFFFll, "9223372036854775807")
+		== std::string("[9223372036854775807][9223372036854775807]"));
+
+	_ASSERT(stringutils::FormatString(L"[" PRF_W_STRING L"][%" TOWSTRING(PRId64) L"]", L"9223372036854775807", 0x7FFFFFFFFFFFFFFFll)
+		== std::wstring(L"[9223372036854775807][9223372036854775807]"));
+
+	_ASSERT(stringutils::FormatString(L"[%" TOWSTRING(PRId64) L"][" PRF_W_STRING L"]", 0x7FFFFFFFFFFFFFFFll, L"9223372036854775807")
+		== std::wstring(L"[9223372036854775807][9223372036854775807]"));
 
 }
 
@@ -892,13 +945,74 @@ inline void test() {
     _ASSERT(s4 == std::wstring(L"012"));
 }
 
+void FormatStringFTest()
+{
+    CLogger::Instance().FormatStringF("szFmt %s %s", "args", "...");
+
+    CLogger::Instance().FormatStringF(L"szFmt %s %s", L"args", L"...");
+
+    //{
+    //    CDummyXFile xf;
+    //    FormatStringF(xf.GetFilePtr(), "szFmt %s %s", "args", "...");
+    //}
+
+    //{
+    //    CDummyXFile xf;
+    //    FormatStringF(xf.GetFilePtr(), L"szFmt %s %s", L"args", L"...");
+    //}
+
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, "szFmt %s", "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, std::string("szFmt %s"), "args...");
+
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, L"szFmt %ls", L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, std::wstring(L"szFmt %ls"), L"args...");
+
+    char arr1[] = "hello %s";
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, arr1, "args...");
+    wchar_t arr2[] = L"hello %s";
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, arr2, L"args...");
+
+    const std::string cp1("szFmt %s");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, cp1, "args...");
+    const std::wstring cp2(L"szFmt %ls");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, cp2, L"args...");
+
+}
+
+
 int main(/*int argc, char *argv[]*/) {
 
     // QCoreApplication app(argc, argv);
-    int64_t i64val = 78686876;
-    stringutils::FormatString("%" PRId32, i64val);
-    stringutils::FormatString(L"%" PRId32, i64val);
 
+    {
+        char tst = 0;
+        static_assert(std::is_convertible<decltype(tst),const char >::value, "");
+           
+        wchar_t tstW1 = 0;
+        static_assert(std::is_convertible<decltype(tstW1),const char >::value, "");
+
+        char tst1[10]{};
+        static_assert(std::is_convertible<decltype(tst1),const char *>::value, "");
+
+        const char* tst2 = "";
+        static_assert(std::is_convertible<decltype(tst2),const char *>::value, "");
+
+        const char* const tst3 = "";
+        static_assert(std::is_convertible<decltype(tst3),const char *>::value, "");
+
+        wchar_t tstW = 0;
+        static_assert(!std::is_convertible<decltype(tstW),const char *>::value, "");
+
+        wchar_t tst1W[10]{};
+        static_assert(!std::is_convertible<decltype(tst1W),const char *>::value, "");
+
+        const wchar_t* tst2W = L"";
+        static_assert(!std::is_convertible<decltype(tst2W),const char *>::value, "");
+
+        const wchar_t* const tst3W = L"";
+        static_assert(!std::is_convertible<decltype(tst3W),const char *>::value, "");
+    }
+        
     FormatStringTestBase();
 
 #ifdef SLICINGEXAMPLE
@@ -924,51 +1038,118 @@ int main(/*int argc, char *argv[]*/) {
         LOG_INITIALIZE();
         LOG_EXTENDEDLOG(false);
         {
+            int64_t valInt64_1 = 0x5a6bc;
+            int64_t valInt64_2 = 0x1;
+            int64_t valInt64_3 = 0xaabbcc;
+            int64_t valInt64_4 = 0xabc;
+       
             LOGSTREAMA(CLogger::eLogLevel::eLogLevel_info)
-                    << " hi there char! DEC "
-                    << 5
-                    << " HEX "
+                << "[Hi, char !]"
 
-                    << " 0x"
-                    << std::uppercase
-                    << std::setfill('0')
-                    << std::setw(8)
-                    << std::hex
-                    << 5655
+                // showbase useless with uppercase and setw
+                //<< "HEX [00X5A6BC]==["
+                //<< std::hex
+                //<< std::showbase
+                //<< std::uppercase
+                //<< std::setfill('0')
+                //<< std::setw(sizeof(valInt64_1))
+                //<< valInt64_1
+                //<< "] "
 
-                       //<< stringutils::toHexString(234234);
+                << "HEX [0x0005A6BC]==[0x"
+                << std::hex
+                << std::noshowbase
+                << std::uppercase
+                << std::setfill('0')
+                << std::setw(sizeof(valInt64_1))
+                << valInt64_1
+                << "] "
 
-                    << std::dec
-                    << " DEC "
-                    << 7778
+                << "HEX [0x00000001]==[0x"
+                << std::hex
+                << std::setfill('0')
+                << std::setw(sizeof(valInt64_2))
+                << std::noshowbase
+                << std::uppercase
+                << valInt64_2
+                << "] "
 
-                    << " cyr["
-                    << u8" кирилица "
-                    << "] "
+                << "HEX [0xABC]==[0x"
+                << std::hex
+                << valInt64_4
+                << "] "
 
-                    << " end char message";
-        }
-        {
+                << " DEC [7778]==["
+                << std::dec
+                << 7778
+                << "] "
+
+                << "HEX [0xAABBCC]==[0x"
+                << std::hex
+                << valInt64_3
+                << "] "
+
+                << " DEC [-1]==["
+                << std::dec
+                << -1
+                << "] "
+
+                //<< stringutils::toHexString(234234);
+                << "[End!]";
+
             LOGSTREAMW(CLogger::eLogLevel::eLogLevel_info)
-                    << L" hi there wchar_t! DEC "
+                << L"[Hi, char !]"
 
-                    << 5
-                    << L" HEX "
+                // showbase useless with uppercase and setw
+                //<< "HEX [00X5A6BC]==["
+                //<< std::hex
+                //<< std::showbase
+                //<< std::uppercase
+                //<< std::setfill('0')
+                //<< std::setw(sizeof(valInt64_1))
+                //<< valInt64_1
+                //<< "] "
 
-                    << L" 0x"
-                    << std::uppercase
-                    << std::setfill(L'0')
-                    << std::setw(8)
-                    << std::hex
-                    << 5655
-                    //<< stringutils::toHexString(234234);
-                    << std::dec
-                    << L" DEC "
-                    << 7778
-                       //            << L" cyr["
-                       //            << L" кирилица "
-                       //            << L"] "
-                    << L" end wchar_t message";
+                << "HEX [0x0005A6BC]==[0x"
+                << std::hex
+                << std::noshowbase
+                << std::uppercase
+                << std::setfill(L'0')
+                << std::setw(sizeof(valInt64_1))
+                << valInt64_1
+                << "] "
+
+                << "HEX [0x00000001]==[0x"
+                << std::hex
+                << std::setfill(L'0')
+                << std::setw(sizeof(valInt64_2))
+                << std::noshowbase
+                << std::uppercase
+                << valInt64_2
+                << "] "
+
+                << "HEX [0xABC]==[0x"
+                << std::hex
+                << valInt64_4
+                << "] "
+
+                << " DEC [7778]==["
+                << std::dec
+                << 7778
+                << "] "
+
+                << "HEX [0xAABBCC]==[0x"
+                << std::hex
+                << valInt64_3
+                << "] "
+
+                << " DEC [-1]==["
+                << std::dec
+                << -1
+                << "] "
+
+                //<< stringutils::toHexString(234234);
+                << "[End!]";
 
         }
 #if 0
@@ -1104,6 +1285,7 @@ int main(/*int argc, char *argv[]*/) {
        LOG_TRACE("------------------- End Log threads test -------------------");
 #endif
 
+       LOG_INFO(info::GetVersionString(executableName));
 
 
 
@@ -1159,7 +1341,7 @@ int main(/*int argc, char *argv[]*/) {
                 }
             }
         }
-        // search path to temorary folder and make worked path to log
+        // search path to temporary folder and make worked path to log
         {
             QStringList locations;
             CFilesystemStandartPath::GetLogPath(locations);
@@ -1829,3 +2011,147 @@ void instantation() {
 
 
 #endif // 0
+
+/*
+    class CDummyXFile
+    {
+    public:
+        CDummyXFile(FILE* const file) {
+            m_storedFile = file;
+        }
+
+        CDummyXFile() {
+        }
+
+        ~CDummyXFile() {
+            if (m_dummyFile != nullptr)
+                fclose(m_dummyFile);
+        }
+
+        FILE* GetFilePtr() {
+
+            if (m_storedFile)
+                return m_storedFile;
+
+            if (m_dummyFile == nullptr) {
+#if defined(WINDOWS_PLATFORM)
+                auto ret = fopen_s(&m_dummyFile, "NUL", "wb");
+                if (ret != 0) {
+                    _ASSERT(0);
+                }
+#else
+                m_dummyFile = fopen("/dev/null", "wb");
+                if (m_dummyFile == nullptr) {
+                    _ASSERT(0);
+                }
+#endif
+            }
+
+            _ASSERT(m_dummyFile);
+
+            return m_dummyFile;
+        }
+
+    private:
+        FILE* m_dummyFile = nullptr;
+        FILE* m_storedFile = nullptr;
+
+        // Copy constructor
+        CDummyXFile(const CDummyXFile& t) = delete;
+        // Copy assignment operator
+        CDummyXFile& operator = (const CDummyXFile& t) = delete;
+    };
+
+*/
+
+
+/*
+    template<typename... TArg>
+    int printX(std::vector<char>& buffer, _Printf_format_string_ const char* const szFmt, TArg...args) {
+        return std::vsnprintf(buffer.data(), buffer.size() - 1, szFmt, args...);
+    }
+
+    template<typename... TArg>
+    int printX(std::vector<wchar_t>& buffer, _Printf_format_string_ const wchar_t* const szFmt, TArg...args) {
+        return std::vswprintf(buffer.data(), buffer.size() - 1, szFmt, args...);
+    }
+
+    template<typename... TArg>
+    int dummyPrintX(_Printf_format_string_  const char* const szFmt, TArg...args) {
+        return std::vfprintf(m_dummyFile, szFmt, args...);
+    }
+
+    template<typename... TArg>
+    int dummyPrintX(_Printf_format_string_ const wchar_t* const szFmt, TArg...args) {
+        return std::vfwprintf(m_dummyFile, szFmt, args...);
+    }
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <typeparam name="Tstring"></typeparam>
+    /// <param name="stream"></param>
+    /// <param name="szFmt"></param>
+    /// <param name=""></param>
+    /// <returns>Formated std::string or std::wstring</returns>
+    template<typename Tstring>
+    inline auto FormatStringF(_Printf_format_string_ Tstring const szFmt, ...)
+    {
+        constexpr auto isCharS = std::is_same<Tstring, std::string>::value;
+        constexpr auto isCharC = std::is_convertible<Tstring, const char*>::value;
+        constexpr auto isChar = isCharS || isCharC;
+        using sTyp = typename std::conditional< isChar, char, wchar_t>::type;
+
+        std::basic_string<sTyp> formatString;
+
+        if (szFmt == nullptr)
+            return formatString;
+
+        formatString = szFmt;
+        if (formatString.length() < 1)
+            return formatString;
+
+        const auto* fmtString = formatString.c_str();
+
+        int64_t size = -1;
+        {
+            va_list argsx;
+            va_start(argsx, fmtString);
+            size = dummyPrintX(fmtString, argsx);
+            va_end(argsx);
+        }
+
+        if (size < 1) {
+            formatString.clear();
+            return formatString;
+        }
+
+        std::vector<sTyp> buffer(2ULL + size, 0);
+
+        {
+            va_list argsx;
+            va_start(argsx, fmtString);
+            size = printX(buffer, fmtString, argsx);
+            va_end(argsx);
+        }
+
+        if (size < 1)
+            buffer[0] = 0;
+
+        formatString = buffer.data();
+        return formatString;
+    };
+
+
+    //template<typename Tstring, typename ...TArg>
+    //static inline auto FormatString(_Printf_format_string_ Tstring const szFmt, TArg...args) {
+    //    CDummyXFile x;
+    //    return FormatStringF(x.GetFilePtr(), szFmt, args...);
+    //}
+    //template<typename Tstring, typename...Targ>
+    //static auto FormatString(_Printf_format_string_ Tstring const* const szFmt, Targ...args) {
+    //    return FormatStringF(nullptr, szFmt, args...);
+    //}
+
+
+*/

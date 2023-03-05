@@ -92,7 +92,7 @@ std::string CLogger::GetTimestamp(const std::string&)
 
     const auto& printTime = localTime;
 
-    auto res = stringutils::FormatString(
+    auto res = FormatStringF(
              "%04" PRId32
             "-%02" PRId32
             "-%02" PRId32
@@ -167,6 +167,75 @@ std::wstring CLogger::GetErrorStringW(const int32_t errorCode) {
     UNREFERENCED_PARAMETER_LOG(len);
     return buf.data();
 #endif
+}
+
+std::string CLogger::FormatStringF(_Printf_format_string_ const char* const szFmt, ...)
+{
+    if (szFmt == nullptr)
+        return "";
+
+    if (strlen(szFmt) < 1)
+        return "";
+
+    int64_t size = -1;
+    {
+        va_list argsx;
+        va_start(argsx, szFmt);
+        size = std::vfprintf(m_dummyFile, szFmt, argsx);
+        va_end(argsx);
+    }
+
+    if (size < 1)
+        return "";
+
+    std::vector<char> buffer(2ULL + size, 0);
+
+    {
+        va_list argsx;
+        va_start(argsx, szFmt);
+        size = std::vsnprintf(buffer.data(), buffer.size() - 1, szFmt, argsx);
+        va_end(argsx);
+    }
+
+    if (size < 1)
+        return "";
+
+    return buffer.data();
+}
+
+std::wstring CLogger::FormatStringF(_Printf_format_string_ const wchar_t* const szFmt, ...)
+{
+    if (szFmt == nullptr)
+        return L"";
+
+    if (wcslen(szFmt) < 1)
+        return L"";
+
+    int64_t size = -1;
+    {
+        va_list argsx;
+        va_start(argsx, szFmt);
+        size = std::vfwprintf(m_dummyFile, szFmt, argsx);
+        va_end(argsx);
+    }
+
+    if (size < 1)
+        return L"";
+
+    std::vector<wchar_t> buffer(2ULL + size, 0);
+
+    {
+        const auto sizeForIdioticCompiller = buffer.size() - 1;
+        va_list argsx;
+        va_start(argsx, szFmt);
+        size = std::vswprintf(buffer.data(), sizeForIdioticCompiller, szFmt, argsx);
+        va_end(argsx);
+    }
+
+    if (size < 1)
+        return L"";
+
+    return buffer.data();
 }
 
 void CLogger::PrintExtInfo(std::string& val, const char* szFile, const char* szFunc, const int iLine) {
