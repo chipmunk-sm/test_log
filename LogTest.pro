@@ -1,8 +1,8 @@
 QT += gui
 
-#CONFIG += c++14
+CONFIG += c++14
 #CONFIG += c++17
-CONFIG += c++20
+#CONFIG += c++20
 CONFIG += console
 #CONFIG -= app_bundle
 #QT += widgets
@@ -53,6 +53,7 @@ QMAKE_CXXFLAGS_WARN_ON   = $$QMAKE_CFLAGS_WARN_ON
 #QMAKE_CXXFLAGS_EXCEPTIONS_OFF = -fno-exceptions
 
 android {
+#QTPLUGIN.platforms = android
 #    message("android")
 #    QT += androidextras
 
