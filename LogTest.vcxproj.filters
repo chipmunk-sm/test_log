@@ -82,6 +82,5 @@
     <None Include="android\res\values\libs.xml">
       <Filter>Distribution Files</Filter>
     </None>
-    <None Include="LogTest.vcxproj.vsspell" />
   </ItemGroup>
 </Project>

@@ -472,15 +472,15 @@ void test_GetVersionString()
 }
 
 
-class TestThreads {
+class TestThreadsLog {
 public:
-    TestThreads(TestThreads&) = delete;
-    TestThreads& operator=(const TestThreads&) = delete;
-    TestThreads() {
+    TestThreadsLog(TestThreadsLog&) = delete;
+    TestThreadsLog& operator=(const TestThreadsLog&) = delete;
+    TestThreadsLog() {
         for (size_t i = 0; i < 100; i++)
         {
             const int32_t threadid = m_threadsStart++;
-            auto RunThread = [threadid](TestThreads* pThis) {
+            auto RunThread = [threadid](TestThreadsLog* pThis) {
                 pThis->m_threadsRun++;
                 LOG_TRACE("START ________ thread id %04" PRId32, threadid);
                 try {
@@ -490,7 +490,7 @@ public:
                     }
                 }
                 catch (...) {
-
+                    _ASSERT(0);
                 }
                 pThis->m_threadsRun--;
                 pThis->m_threadsStart--;
@@ -499,7 +499,7 @@ public:
             (std::thread(RunThread, this)).detach();
         }
      }
-     ~TestThreads() {
+     ~TestThreadsLog() {
          auto timeout = 100;
          while (runThreadsCount() > 0 && timeout-- > 0) {
              std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -518,6 +518,71 @@ private:
     std::atomic_int32_t m_threadsStart = {};
 };
 
+
+class TestThreadsStringFormat {
+public:
+    TestThreadsStringFormat(TestThreadsStringFormat&) = delete;
+    TestThreadsStringFormat& operator=(const TestThreadsStringFormat&) = delete;
+    TestThreadsStringFormat() {
+        for (size_t i = 0; i < 100; i++)
+        {
+            const int32_t threadid = m_threadsStart++;
+            auto RunThread = [threadid](TestThreadsStringFormat* pThis) {
+                pThis->m_threadsRun++;
+                //LOG_TRACE("START ________ thread id %04" PRId32, threadid);
+				try {
+					for (int64_t i = 0; i < 1000; i++) {
+                        {
+                            const decltype(i)& ind = i;
+                            const auto paramInd = std::to_string(ind);
+                            const auto paramId = std::to_string(threadid);
+                            const auto res = stringutils::FormatString(" Thread [" PRF_CH_STRING "] [" PRF_CH_STRING "]", paramInd.c_str(), paramId.c_str());
+                            const auto tst = std::string(" Thread [") + paramInd + "] [" + paramId + "]";
+                            _ASSERT(res == tst);
+                            if (res != tst)
+                                throw std::runtime_error("Oh no, something wrong here");
+                        }
+                        {
+                            const decltype(i)& ind = i;
+                            const auto paramInd = std::to_wstring(ind);
+                            const auto paramId = std::to_wstring(threadid);
+                            const auto res = stringutils::FormatString(L" Thread [" PRF_W_STRING "] [" PRF_W_STRING "]", paramInd.c_str(), paramId.c_str());
+                            const auto tst = std::wstring(L" Thread [") + paramInd + L"] [" + paramId + L"]";
+                            _ASSERT(res == tst);
+                            if (res != tst)
+                                throw std::runtime_error("Oh no, something wrong here");
+                        }
+                    }
+				}
+				catch (...) {
+                    _ASSERT(0);
+                    LOG_ERROR("TestThreadsStringFormat FAILED");
+				}
+                pThis->m_threadsRun--;
+                pThis->m_threadsStart--;
+                //LOG_TRACE("EXIT ________ thread id %04" PRId32, threadid);
+            };
+            (std::thread(RunThread, this)).detach();
+        }
+     }
+     ~TestThreadsStringFormat() {
+         auto timeout = 100;
+         while (runThreadsCount() > 0 && timeout-- > 0) {
+             std::this_thread::sleep_for(std::chrono::milliseconds(20));
+         }
+
+         if (timeout == 0) {
+             //do something
+             _ASSERT(0);
+         }
+     }
+     int32_t runThreadsCount() {
+         return (m_threadsRun.load() + m_threadsStart.load());
+     }
+private:
+    std::atomic_int32_t m_threadsRun = {};
+    std::atomic_int32_t m_threadsStart = {};
+};
 
 
 //#define STRINTEMPLATETEST
@@ -1035,6 +1100,21 @@ int main(/*int argc, char *argv[]*/) {
 
     try {
 
+#if 0
+        LOG_TRACE("------------------- Start String format threads test -------------------");
+        {
+            const auto startTime = std::chrono::high_resolution_clock::now();
+            TestThreadsStringFormat testThread;
+            while (testThread.runThreadsCount() > 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            }
+            const auto finishTime = std::chrono::high_resolution_clock::now();
+            const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(finishTime - startTime).count();
+            LOG_TRACE("------------------- Test take %.6f sec. -------------------", duration);
+        }
+        LOG_TRACE("------------------- End  String format threads test -------------------");
+#endif
+
         LOG_INITIALIZE();
         LOG_EXTENDEDLOG(false);
         {
@@ -1270,11 +1350,11 @@ int main(/*int argc, char *argv[]*/) {
         LOG_ERROR("-------------------  End Log range error codes -------------------");
 
 
-#if 1
-        LOG_TRACE("-------------------  Start Log threads test -------------------");
+#if 0
+        LOG_TRACE("------------------- Start Log threads test -------------------");
        {
             const auto startTime = std::chrono::high_resolution_clock::now();
-            TestThreads testThread;
+            TestThreadsLog testThread;
             while (testThread.runThreadsCount() > 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
             }
