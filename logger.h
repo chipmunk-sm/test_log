@@ -392,14 +392,14 @@ namespace stringutils
     }
 
     template <typename T>
-    auto toHexString(const int64_t value, const char* fmt = "0x%08X"){
+    auto toHexString(const int64_t value, const char* fmt = "0x%08" PRIX64){
         int sz = std::snprintf(nullptr, 0, fmt, value);
         std::vector<T> buf(sz + 1, 0);
         std::snprintf(buf.data(), buf.size(), fmt, value);
         return buf.data();
     }
     template <typename T>
-    auto toHexString(const int64_t value, const wchar_t* fmt = L"0x%08X"){
+    auto toHexString(const int64_t value, const wchar_t* fmt = L"0x%08" PRIX64){
         int sz = std::swprintf(nullptr, 0, fmt, value);
         std::vector<wchar_t> buf(sz + 1, 0);
         std::swprintf(buf.data(), buf.size(), fmt, value);
