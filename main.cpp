@@ -27,7 +27,7 @@
 #define ERROR_SUCCESS 0x0L
 #endif
 
-bool test_replaceSubstr() {
+static bool test_replaceSubstr() {
     auto ret = true;
     {
         std::string tst("12345%%6");
@@ -145,7 +145,7 @@ bool test_replaceSubstr() {
     return ret;
 }
 
-bool test_splitString() {
+static bool test_splitString() {
     auto ret = true;
     {
         auto res = stringutils::splitString(std::string(",,,cce\nghh"), ",\n");
@@ -246,7 +246,7 @@ bool test_splitString() {
     return ret;
 }
 
-bool test_StringConvert()
+static bool test_StringConvert()
 {
     auto ret = true;
     {
@@ -336,7 +336,7 @@ bool test_StringConvert()
     return ret;
 }
 
-void testLogOutput()
+static void testLogOutput()
 {
     {
 
@@ -403,11 +403,11 @@ void testLogOutput()
 
         LOG_TRACE(std::string("[TRACE [" PRF_CH_STRING "]]"), "char std::string");
         LOG_INFO(std::string("[INFO  [" PRF_CH_STRING "]]"), "char std::string");
-        LOG_ERROR(std::string("[ERROR [" PRF_CH_STRING "]]"), "char std::string")
+        LOG_ERROR(std::string("[ERROR [" PRF_CH_STRING "]]"), "char std::string");
 
         LOG_TRACE(std::wstring(L"[TRACE [" PRF_W_STRING "]]"), L"wchar std::wstring");
         LOG_INFO(std::wstring(L"[INFO  [" PRF_W_STRING "]]"), L"wchar std::wstring");
-        LOG_ERROR(std::wstring(L"[ERROR [" PRF_W_STRING "]]"), L"wchar std::wstring")
+        LOG_ERROR(std::wstring(L"[ERROR [" PRF_W_STRING "]]"), L"wchar std::wstring");
     }
     {
         LOG_TRACE(L"[VAL [" PRF_W_STRING "] [%" PRId8  "]]", L"test -128", -128);
@@ -449,7 +449,7 @@ void testLogOutput()
     LOG_TRACE("------------------- End Log overload test -------------------");
 }
 
-bool test_guid()
+static bool test_guid()
 {
     auto ret = true;
     {
@@ -462,7 +462,7 @@ bool test_guid()
     return ret;
 }
 
-void test_GetVersionString()
+static void test_GetVersionString()
 {
     // overload test
     info::GetVersionString(std::string("1"));
@@ -518,13 +518,12 @@ private:
     std::atomic_int32_t m_threadsStart = {};
 };
 
-
 class TestThreadsStringFormat {
 public:
     TestThreadsStringFormat(TestThreadsStringFormat&) = delete;
     TestThreadsStringFormat& operator=(const TestThreadsStringFormat&) = delete;
     TestThreadsStringFormat() {
-        for (size_t i = 0; i < 100; i++)
+        for (size_t xxx = 0; xxx < 100; xxx++)
         {
             const int32_t threadid = m_threadsStart++;
             auto RunThread = [threadid](TestThreadsStringFormat* pThis) {
@@ -739,7 +738,7 @@ std::wstring TestRemoveConstAndPointer(const T* const _Format) {
 /////////////////////////////////////////////////////////////
 
 
-void FormatStringTestBase()
+static void FormatStringTestBase()
 {
 	const wchar_t* ptrW = nullptr;
 	stringutils::FormatString(ptrW);
@@ -987,7 +986,7 @@ void FormatStringTestBase()
 
 }
 
-inline void test() {
+static inline void test() {
 
     std::string s1("0");
     STRAPPEND(s1, "1");
@@ -1010,7 +1009,7 @@ inline void test() {
     _ASSERT(s4 == std::wstring(L"012"));
 }
 
-void FormatStringFTest()
+static void FormatStringFTest()
 {
     CLogger::Instance().FormatStringF("szFmt %s %s", "args", "...");
 
@@ -1077,8 +1076,11 @@ int main(/*int argc, char *argv[]*/) {
         const wchar_t* const tst3W = L"";
         static_assert(!std::is_convertible<decltype(tst3W),const char *>::value, "");
     }
-        
+
     FormatStringTestBase();
+#if 0
+    FormatStringFTest();
+#endif
 
 #ifdef SLICINGEXAMPLE
     PolymorphicSlicingExample();
@@ -1125,16 +1127,17 @@ int main(/*int argc, char *argv[]*/) {
        
             LOGSTREAMA(CLogger::eLogLevel::eLogLevel_info)
                 << "[Hi, char !]"
-
-                // showbase useless with uppercase and setw
-                //<< "HEX [00X5A6BC]==["
-                //<< std::hex
-                //<< std::showbase
-                //<< std::uppercase
-                //<< std::setfill('0')
-                //<< std::setw(sizeof(valInt64_1))
-                //<< valInt64_1
-                //<< "] "
+                /*
+                     showbase useless with uppercase and setw
+                    << "HEX [00X5A6BC]==["
+                    << std::hex
+                    << std::showbase
+                    << std::uppercase
+                    << std::setfill('0')
+                    << std::setw(sizeof(valInt64_1))
+                    << valInt64_1
+                    << "] "
+                */
 
                 << "HEX [0x0005A6BC]==[0x"
                 << std::hex
@@ -1174,21 +1177,22 @@ int main(/*int argc, char *argv[]*/) {
                 << -1
                 << "] "
 
-                //<< stringutils::toHexString(234234);
                 << "[End!]";
 
             LOGSTREAMW(CLogger::eLogLevel::eLogLevel_info)
                 << L"[Hi, char !]"
 
-                // showbase useless with uppercase and setw
-                //<< "HEX [00X5A6BC]==["
-                //<< std::hex
-                //<< std::showbase
-                //<< std::uppercase
-                //<< std::setfill('0')
-                //<< std::setw(sizeof(valInt64_1))
-                //<< valInt64_1
-                //<< "] "
+                /*
+                     showbase useless with uppercase and setw
+                    << "HEX [00X5A6BC]==["
+                    << std::hex
+                    << std::showbase
+                    << std::uppercase
+                    << std::setfill('0')
+                    << std::setw(sizeof(valInt64_1))
+                    << valInt64_1
+                    << "] "
+                */
 
                 << "HEX [0x0005A6BC]==[0x"
                 << std::hex
@@ -1228,7 +1232,6 @@ int main(/*int argc, char *argv[]*/) {
                 << -1
                 << "] "
 
-                //<< stringutils::toHexString(234234);
                 << "[End!]";
 
         }
