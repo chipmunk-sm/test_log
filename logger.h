@@ -242,7 +242,7 @@ constexpr std::chrono::milliseconds operator "" ms(unsigned long long x_val)
 #  elif defined(__i386__) || defined(__x86_64__)
      inline void EXTASSERT(void) { __asm__ __volatile__("int3"); }
 #  elif defined(__thumb__)
-     inline void EXTASSERT(void) { __asm__ __volatile__(".inst 0xde01"); }
+inline void EXTASSERT(void) { __asm__ __volatile__(".inst 0xde01"); }
 #  elif defined(__aarch64__)
      inline void EXTASSERT(void) { __asm__ __volatile__(".inst 0xd4200000"); }
 #  elif defined(__arm__)
@@ -717,7 +717,7 @@ namespace stringutils
             // size determined and not enough bytes in the buffer 
             if (size >= static_cast<decltype(size)>(buffer.size() - 1)) {
 
-                const auto& newSize = 2ULL + size;
+                const auto& newSize = 2ULL + static_cast<size_t>(size);
 
                 if (newSize > TMaxSize) {
                     _ASSERT(0);
@@ -1115,25 +1115,80 @@ public:
     }eLogLevel;
 
 public:
-    static CLogger& Instance();
+    static CLogger& Instance()
+    {
+        static CLogger thisInstance;
+        return thisInstance;
+    }
     CLogger(const CLogger&) = delete;
     CLogger(const CLogger&&) = delete;
     CLogger& operator=(const CLogger&) = delete;
     CLogger& operator=(const CLogger&&) = delete;
 
 private:
-    explicit CLogger();
-    ~CLogger();
+    explicit CLogger()
+    {
+        dummy[0] = 0;
+        try
+        {
+#if defined(WINDOWS_PLATFORM)
+            fopen_s(&m_dummyFile, "NUL", "wb");
+#else
+            m_dummyFile = fopen("/dev/null", "wb");
+#endif
+        }
+        catch (...)
+        {
+            std::_Exit(-10);
+        }
+        try
+        {
+            //OpenLogFile();
+        }
+        catch (...)
+        {
+            std::_Exit(-20);
+        }
+    }
+    ~CLogger()
+    {
+        std::lock_guard<std::mutex> mlock(m_mutexLog);
+        m_bExit = true;
+        //CloseLogFile();
+        if (m_dummyFile != nullptr)
+            fclose(m_dummyFile);
+    }
 
 public:
 
-    void SetDisplayExtInfo(bool val);
+    void SetDisplayExtInfo(bool val) {
+        m_displayExtInfo = val;
+    }
 
     /// return string describing error number
-    static std::string GetErrorStringA(const int32_t errorCode);
+    static std::string GetErrorStringA(const int32_t errorCode) {
+        std::vector<char> buf(20, 0);
+        std::snprintf(buf.data(), buf.size(), "[0x%08X] ", errorCode);
+        return std::string(buf.data()) + ClearMessage(std::system_category().message(errorCode));
+    }
 
     /// return string describing error number
-    static std::wstring GetErrorStringW(const int32_t errorCode);
+    static std::wstring GetErrorStringW(const int32_t errorCode) {
+        std::vector<wchar_t> buf(1024, 0);
+        const auto& len = std::swprintf(buf.data(), buf.size() - 1, L"[0x%08X] ", errorCode);
+        if (len < 1)
+            return  L"[" + std::to_wstring(errorCode) + L"]";
+
+#if defined(WINDOWS_PLATFORM)
+        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
+            static_cast<DWORD>(errorCode),
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buf.data() + len, static_cast<DWORD>(buf.size()) - static_cast<DWORD>(len) - 1, nullptr);
+        return ClearMessage(buf.data());
+#else
+        UNREFERENCED_PARAMETER_LOG(len);
+        return buf.data();
+#endif
+    }
 
     template<typename Tstring, typename...Targs>
     void LogMess(eLogLevel lvl, const char* szFile, const char* szFunc, const int iLine, _Printf_format_string_ Tstring szFmt, Targs...args)
@@ -1165,22 +1220,246 @@ public:
     }
 
 public: 
-    std::string FormatStringF(_Printf_format_string_ const char* const szFmt, ...);;
-    std::wstring FormatStringF(_Printf_format_string_ const wchar_t* const szFmt, ...);;
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4710)
+#endif
+
+
+    std::string FormatStringF(_Printf_format_string_ const char* const szFmt, ...)
+    {
+        if (szFmt == nullptr)
+            return "";
+
+        if (strlen(szFmt) < 1)
+            return "";
+
+        int64_t size = -1;
+        {
+            va_list argsx;
+            va_start(argsx, szFmt);
+            size = std::vfprintf(m_dummyFile, szFmt, argsx);
+            va_end(argsx);
+        }
+
+        if (size < 1)
+            return "";
+
+        std::vector<char> buffer(2ULL + size, 0);
+
+        {
+            va_list argsx;
+            va_start(argsx, szFmt);
+            size = std::vsnprintf(buffer.data(), buffer.size() - 1, szFmt, argsx);
+            va_end(argsx);
+        }
+
+        if (size < 1)
+            return "";
+
+        return buffer.data();
+    }
+
+    std::wstring FormatStringF(_Printf_format_string_ const wchar_t* const szFmt, ...)
+    {
+        if (szFmt == nullptr)
+            return L"";
+
+        if (wcslen(szFmt) < 1)
+            return L"";
+
+        int64_t size = -1;
+        {
+            va_list argsx;
+            va_start(argsx, szFmt);
+            size = std::vfwprintf(m_dummyFile, szFmt, argsx);
+            va_end(argsx);
+        }
+
+        if (size < 1)
+            return L"";
+
+        std::vector<wchar_t> buffer(2ULL + static_cast<size_t>(size), 0);
+
+        {
+            const auto sizeForIdioticCompiller = buffer.size() - 1;
+            va_list argsx;
+            va_start(argsx, szFmt);
+            size = std::vswprintf(buffer.data(), sizeForIdioticCompiller, szFmt, argsx);
+            va_end(argsx);
+        }
+
+        if (size < 1)
+            return L"";
+
+        return buffer.data();
+    }
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 private:
 
-    const wchar_t* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::wstring&);
-    const char* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::string&);
+    const wchar_t* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::wstring&)
+    {
+        switch (lvl) {
+        case eLogLevel_error: return L";E;";
+        case eLogLevel_info:  return L";I;";
+        case eLogLevel_trace: return L";T;";
+        }
+        return L";U;";
+    }
+    const char* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::string&)
+    {
+        switch (lvl) {
+        case eLogLevel_error: return ";E;";
+        case eLogLevel_info:  return ";I;";
+        case eLogLevel_trace: return ";T;";
+        }
+        return ";U;";
+    }
 
-    std::string GetTimestamp(const std::string&);
-    std::wstring GetTimestamp(const std::wstring&);
+    std::string GetTimestamp(const std::string&)
+    {
+        auto timeUtc = std::chrono::system_clock::now();
+        auto ttime_t = std::chrono::system_clock::to_time_t(timeUtc);
+        auto timeInSeconds = std::chrono::system_clock::from_time_t(ttime_t);
+        auto ms = std::chrono::duration_cast<std::chrono::microseconds>(timeUtc - timeInSeconds);
 
-    void PrintExtInfo(std::string& val, const char* szFile, const char* szFunc, const int iLine);
-    void PrintExtInfo(std::wstring& val, const char* szFile, const char* szFunc, const int iLine);
 
-    void BufferOut(const std::string& val, bool isError);
-    void BufferOut(const std::wstring& val, bool isError);
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
+        struct tm  gmTime;
+        gmtime_s(&gmTime, &ttime_t);// Coordinated Universal Time (UTC).
+        struct tm  localTime;
+        localtime_s(&localTime, &ttime_t);// local Time
+#else
+        struct tm gmTime;
+        gmtime_r(&ttime_t, &gmTime);// Coordinated Universal Time (UTC).
+        struct tm  localTime;
+        localtime_r(&ttime_t, &localTime);// local Time
+#endif
+
+        int32_t offset = static_cast<int32_t>(mktime(&localTime) - mktime(&gmTime)) / 3600;
+
+        const auto& printTime = localTime;
+
+        auto res = FormatStringF(
+            "%04" PRId32
+            "-%02" PRId32
+            "-%02" PRId32
+            " %02" PRId32
+            ":%02" PRId32
+            ":%02" PRId32
+            ".%06" PRIu64
+            " %+03" PRId32 "00",
+            1900 + printTime.tm_year,
+            1 + printTime.tm_mon,
+            printTime.tm_mday,
+
+            printTime.tm_hour,
+            printTime.tm_min,
+            printTime.tm_sec,
+            static_cast<uint64_t>(ms.count()),// milliseconds or microseconds
+            offset);
+
+        return res;
+    }
+    std::wstring GetTimestamp(const std::wstring&)
+    {
+        return stringutils::ConvertA2W(GetTimestamp(""), true);
+    }
+
+    void PrintExtInfo(std::string& val, const char* szFile, const char* szFunc, const int iLine) {
+        val += ";";
+        val += szFile;
+        val += ";";
+        val += szFunc;
+        val += ";";
+        val += std::to_string(iLine);
+    }
+    void PrintExtInfo(std::wstring& val, const char* szFile, const char* szFunc, const int iLine) {
+        val += L";";
+        val += stringutils::Latin1ToStdWString(szFile);
+        val += L";";
+        val += stringutils::Latin1ToStdWString(szFunc);
+        val += L";";
+        val += std::to_wstring(iLine);
+    }
+
+#define MACROREPLACESYMBOLS \
+    ADDSYM("%hs", "");\
+    ADDSYM("%s", "");\
+    ADDSYM("%wZ", "");\
+    ADDSYM("\n\r", " ");\
+    ADDSYM("\n", " ");\
+    ADDSYM("\r", " ");\
+    ADDSYM("%", "%%");
+
+    static std::string ClearMessage(std::string val)
+    {
+#undef  ADDSYM
+#define ADDSYM(oldVal,newVal) stringutils::replaceSubstringWithString(val, oldVal, newVal)
+        MACROREPLACESYMBOLS
+#undef  ADDSYM
+            return val;
+    }
+
+    static std::wstring ClearMessage(std::wstring val)
+    {
+#undef  ADDSYM
+#define ADDSYM(oldVal,newVal) stringutils::replaceSubstringWithString(val, L##oldVal, L##newVal)
+        MACROREPLACESYMBOLS
+#undef ADDSYM
+            return val;
+    }
+
+    void BufferOut(const std::string& val, bool isError) {
+#if defined(USEQDEBUG)
+        UNREFERENCED_PARAMETER_LOG(isError);
+        qDebug() << QString().fromStdString(val);
+#else
+        if (isError) {
+            std::cerr << val.c_str();
+            std::cerr << std::endl;
+            if (std::cerr.fail()) {
+                std::cerr.clear();
+                std::cerr << std::endl;
+            }
+        }
+        else {
+            std::cout << val.c_str();
+            std::cout << std::endl;
+            if (std::cout.fail()) {
+                std::cout.clear();
+                std::cout << std::endl;
+            }
+        }
+#endif
+    }
+    void BufferOut(const std::wstring& val, bool isError) {
+#if defined(USEQDEBUG)
+        UNREFERENCED_PARAMETER_LOG(isError);
+        qDebug() << QString().fromStdWString(val);
+#else
+        if (isError) {
+            std::wcerr << val.c_str();
+            std::wcerr << std::endl;
+            if (std::wcerr.fail()) {
+                std::wcerr.clear();
+                std::wcerr << std::endl;
+            }
+        }
+        else {
+            std::wcout << val.c_str();
+            std::wcout << std::endl;
+            if (std::wcout.fail()) {
+                std::wcout.clear();
+                std::wcout << std::endl;
+            }
+        }
+#endif
+    }
 
 private:
     FILE* m_dummyFile = nullptr;
@@ -1193,9 +1472,9 @@ private:
 
 };
 
-#define LOG_TRACE(messfmt, ...) { CLogger::Instance().LogMess(CLogger::eLogLevel_trace, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__); };
-#define LOG_INFO(messfmt, ...) { CLogger::Instance().LogMess(CLogger::eLogLevel_info,  __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__); };
-#define LOG_ERROR(messfmt, ...) { CLogger::Instance().LogMess(CLogger::eLogLevel_error, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__); };
+#define LOG_TRACE(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel_trace, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
+#define LOG_INFO(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel_info,  __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
+#define LOG_ERROR(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel_error, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
 
 //**************************************
 //~ CLogger
@@ -1205,10 +1484,11 @@ private:
 //+ Stream log
 //**************************************
 
-
 /// <summary>
 /// LogT<std::ostringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__) << "some char";
 /// LogT<std::wstringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__) << L"some wchar_t";
+/// LOGSTREAMA(CLogger::eLogLevel::eLogLevel_info) << "some char";
+/// LOGSTREAMW(CLogger::eLogLevel::eLogLevel_info) << L"some wchar_t";
 /// </summary>
 /// <typeparam name="T"></typeparam>
 template<class T>
