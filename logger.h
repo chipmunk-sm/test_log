@@ -14,10 +14,10 @@
 // flush data from the log buffer
 #define LOG_FLUSH()  CLogger::Instance().Flush();
 
-//use log in stream style  LOGSTREAMA(CLogger::eLogLevel::eLogLevel_info) << " Hi, there char log! HEX  0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << 5555;
+//use log in stream style  LOGSTREAMA(CLogger::eLogLevel::Info) << " Hi, there char log! HEX  0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << 5555;
 #define LOGSTREAMA(level) LogT<std::ostringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__)
 
-//use log in stream style  LOGSTREAMW(CLogger::eLogLevel::eLogLevel_info) << L" Hi, there wchar_t log! HEX  0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << 5555;
+//use log in stream style  LOGSTREAMW(CLogger::eLogLevel::Info) << L" Hi, there wchar_t log! HEX  0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << 5555;
 #define LOGSTREAMW(level) LogT<std::wstringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__)
 
 
@@ -1108,11 +1108,11 @@ namespace info {
 class CLogger
 {
 public:
-    typedef enum {
-        eLogLevel_error = 0,
-        eLogLevel_info = 1,
-        eLogLevel_trace = 2
-    }eLogLevel;
+    enum class eLogLevel {
+        Error = 0,
+        Info = 1,
+        Trace = 2
+    };
 
 public:
     static CLogger& Instance()
@@ -1215,7 +1215,7 @@ public:
             PrintExtInfo(logstr, szFile, szFunc, iLine);
 
         std::lock_guard<std::mutex> mlock(m_mutexLog);
-        BufferOut(logstr, lvl == eLogLevel::eLogLevel_error);
+        BufferOut(logstr, lvl == eLogLevel::Error);
 
     }
 
@@ -1251,7 +1251,7 @@ public:
         {
             va_list argsx;
             va_start(argsx, szFmt);
-            size = std::vsnprintf(buffer.data(), buffer.size() - 1, szFmt, argsx);
+            size = static_cast<decltype(size)>(std::vsnprintf(buffer.data(), buffer.size() - 1, szFmt, argsx));
             va_end(argsx);
         }
 
@@ -1304,18 +1304,18 @@ private:
     const wchar_t* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::wstring&)
     {
         switch (lvl) {
-        case eLogLevel_error: return L";E;";
-        case eLogLevel_info:  return L";I;";
-        case eLogLevel_trace: return L";T;";
+        case CLogger::eLogLevel::Error: return L";E;";
+        case CLogger::eLogLevel::Info:  return L";I;";
+        case CLogger::eLogLevel::Trace: return L";T;";
         }
         return L";U;";
     }
     const char* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::string&)
     {
         switch (lvl) {
-        case eLogLevel_error: return ";E;";
-        case eLogLevel_info:  return ";I;";
-        case eLogLevel_trace: return ";T;";
+        case CLogger::eLogLevel::Error: return ";E;";
+        case CLogger::eLogLevel::Info:  return ";I;";
+        case CLogger::eLogLevel::Trace: return ";T;";
         }
         return ";U;";
     }
@@ -1464,7 +1464,7 @@ private:
 private:
     FILE* m_dummyFile = nullptr;
     std::mutex  m_mutexLog;
-    eLogLevel   m_logLevel = eLogLevel::eLogLevel_trace;
+    eLogLevel   m_logLevel = eLogLevel::Trace;
     //const int32_t m_logFileCount = 3 + 2;
     bool m_displayExtInfo = false;
     bool m_bExit = false;
@@ -1472,9 +1472,9 @@ private:
 
 };
 
-#define LOG_TRACE(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel_trace, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
-#define LOG_INFO(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel_info,  __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
-#define LOG_ERROR(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel_error, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
+#define LOG_TRACE(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Trace, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
+#define LOG_INFO(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Info,  __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
+#define LOG_ERROR(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Error, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
 
 //**************************************
 //~ CLogger
@@ -1487,8 +1487,8 @@ private:
 /// <summary>
 /// LogT<std::ostringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__) << "some char";
 /// LogT<std::wstringstream>().Get(level, __FILE__, __FUNCTION__, __LINE__) << L"some wchar_t";
-/// LOGSTREAMA(CLogger::eLogLevel::eLogLevel_info) << "some char";
-/// LOGSTREAMW(CLogger::eLogLevel::eLogLevel_info) << L"some wchar_t";
+/// LOGSTREAMA(CLogger::eLogLevel::Info) << "some char";
+/// LOGSTREAMW(CLogger::eLogLevel::Info) << L"some wchar_t";
 /// </summary>
 /// <typeparam name="T"></typeparam>
 template<class T>
@@ -1496,7 +1496,7 @@ class LogT
 {
 public:
     LogT() {
-    };
+    }
 
     LogT(const LogT&) = delete;
     LogT(const LogT&&) = delete;
@@ -1509,15 +1509,15 @@ public:
         m_function = szFunc;
         m_line = iLine;
         return m_os;
-    };
+    }
     ~LogT() {
         CLogger::Instance().LogMess(m_Level, m_file.c_str(), m_function.c_str(), m_line, m_os.str().c_str(), nullptr);
-    };
+    }
 private:
     T m_os;
     std::string m_file;
     std::string m_function;
-    CLogger::eLogLevel m_Level = CLogger::eLogLevel::eLogLevel_error;
+    CLogger::eLogLevel m_Level = CLogger::eLogLevel::Error;
     int m_line = 0;
 };
 
@@ -1555,7 +1555,7 @@ public:
     }
     virtual const char* what() const noexcept override{
         return m_msgA.c_str();
-    };
+    }
     void getErrorMessage(std::string &ret) const noexcept {
         ret = m_msgA;
     }
