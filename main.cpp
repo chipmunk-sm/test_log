@@ -1025,21 +1025,21 @@ static void FormatStringFTest()
     //    FormatStringF(xf.GetFilePtr(), L"szFmt %s %s", L"args", L"...");
     //}
 
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, "szFmt %s", "args...");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, std::string("szFmt %s"), "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, "szFmt %s", "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, std::string("szFmt %s"), "args...");
 
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, L"szFmt %ls", L"args...");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, std::wstring(L"szFmt %ls"), L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, L"szFmt %ls", L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, std::wstring(L"szFmt %ls"), L"args...");
 
     char arr1[] = "hello %s";
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, arr1, "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, arr1, "args...");
     wchar_t arr2[] = L"hello %s";
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, arr2, L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, arr2, L"args...");
 
     const std::string cp1("szFmt %s");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, cp1, "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, cp1, "args...");
     const std::wstring cp2(L"szFmt %ls");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::eLogLevel_trace, "szFile", "szFunc", 0, cp2, L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, cp2, L"args...");
 
 }
 
@@ -1125,7 +1125,7 @@ int main(/*int argc, char *argv[]*/) {
             int64_t valInt64_3 = 0xaabbcc;
             int64_t valInt64_4 = 0xabc;
        
-            LOGSTREAMA(CLogger::eLogLevel::eLogLevel_info)
+            LOGSTREAMA(CLogger::eLogLevel::Info)
                 << "[Hi, char !]"
                 /*
                      showbase useless with uppercase and setw
@@ -1179,7 +1179,7 @@ int main(/*int argc, char *argv[]*/) {
 
                 << "[End!]";
 
-            LOGSTREAMW(CLogger::eLogLevel::eLogLevel_info)
+            LOGSTREAMW(CLogger::eLogLevel::Info)
                 << L"[Hi, char !]"
 
                 /*
