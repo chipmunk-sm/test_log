@@ -341,112 +341,100 @@ static void testLogOutput()
     {
 
 #if !defined(_MSC_VER) && defined(__cplusplus) && (__cplusplus < 202002L)
-        LOG_TRACE("------------------- Start Log EXT CHARS -------------------");
-        LOG_TRACE( u8"6 - sym abvgiy [абвгіЇ]");
-        LOG_TRACE( u8"6 - sym abvgiy [абвгіЇ]");
-        LOG_TRACE( u8"3 - sym uoa [üöä]");
-        LOG_TRACE( u8"5 - [こんにちは]");
-        LOG_TRACE("------------------- End Log EXT CHARS -------------------");
+        LOG_INFO("------------------- Start Log EXT CHARS -------------------");
+        LOG_INFO( u8"6 - sym abvgiy [абвгіЇ]");
+        LOG_INFO( u8"6 - sym abvgiy [абвгіЇ]");
+        LOG_INFO( u8"3 - sym uoa [üöä]");
+        LOG_INFO( u8"5 - [こんにちは]");
+        LOG_INFO("------------------- End Log EXT CHARS -------------------");
 #endif
 
-        LOG_TRACE("------------------- Start Log empty lines -------------------");
-        LOG_TRACE(std::string("").c_str());
-        LOG_TRACE(std::wstring(L"").c_str());
-        LOG_TRACE(std::string(""));
-        LOG_TRACE(std::wstring(L""));
-        LOG_TRACE("");
+        LOG_INFO("------------------- Start Log empty lines -------------------");
+        LOG_INFO(std::string("").c_str());
+        LOG_INFO(std::wstring(L"").c_str());
+        LOG_INFO(std::string(""));
+        LOG_INFO(std::wstring(L""));
+        LOG_INFO("");
         LOG_INFO("");
         LOG_ERROR("");
-        LOG_TRACE("------------------- End Log empty lines -------------------");
+        LOG_INFO("------------------- End Log empty lines -------------------");
 
-        LOG_TRACE("------------------- Start Log simple lines -------------------");
-        LOG_TRACE("[TRACE  simple char]");
+        LOG_INFO("------------------- Start Log simple lines -------------------");
         LOG_INFO("[INFO   simple char]");
         LOG_ERROR("[ERROR  simple char]");
 
-        LOG_TRACE(L"[TRACE simple wchar]");
         LOG_INFO(L"[INFO  simple wchar]");
         LOG_ERROR(L"[ERROR simple wchar]");
 
-        LOG_TRACE(std::string("[TRACE  std::string]"));
         LOG_INFO(std::string("[INFO   std::string]"));
         LOG_ERROR(std::string("[ERROR  std::string]"));
 
-        LOG_TRACE(std::wstring(L"[TRACE std::wstring]"));
         LOG_INFO(std::wstring(L"[INFO  std::wstring]"));
         LOG_ERROR(std::wstring(L"[ERROR std::wstring]"));
-        LOG_TRACE("------------------- End Log simple lines -------------------");
+        LOG_INFO("------------------- End Log simple lines -------------------");
     }
     {
-        LOG_TRACE("------------------- Start Log extend info -------------------");
+        LOG_INFO("------------------- Start Log extend info -------------------");
         LOG_EXTENDEDLOG(true);
-        LOG_TRACE("[TRACE  simple char]");
         LOG_INFO("[INFO   simple char]");
         LOG_ERROR("[ERROR  simple char]");
 
-        LOG_TRACE(L"[TRACE simple wchar]");
         LOG_INFO(L"[INFO  simple wchar]");
         LOG_ERROR(L"[ERROR simple wchar]");
         LOG_EXTENDEDLOG(false);
-        LOG_TRACE("------------------- End Log extend info -------------------");
+        LOG_INFO("------------------- End Log extend info -------------------");
     }
 
-    LOG_TRACE("------------------- Start Log overload test -------------------");
+    LOG_INFO("------------------- Start Log overload test -------------------");
     {
-        LOG_TRACE("[TRACE [" PRF_CH_STRING "]]", "char string");
         LOG_INFO("[INFO  [" PRF_CH_STRING "]]", "char string");
         LOG_ERROR("[ERROR [" PRF_CH_STRING "]]", "char string");
 
-        LOG_TRACE("[TRACE [" PRF_CH_STRING "]]", "char string");
         LOG_INFO("[INFO  [" PRF_CH_STRING "]]", "char string");
         LOG_ERROR("[ERROR [" PRF_CH_STRING "]]", "char string");
 
-        LOG_TRACE(std::string("[TRACE [" PRF_CH_STRING "]]"), "char std::string");
         LOG_INFO(std::string("[INFO  [" PRF_CH_STRING "]]"), "char std::string");
         LOG_ERROR(std::string("[ERROR [" PRF_CH_STRING "]]"), "char std::string");
 
-        LOG_TRACE(std::wstring(L"[TRACE [" PRF_W_STRING "]]"), L"wchar std::wstring");
         LOG_INFO(std::wstring(L"[INFO  [" PRF_W_STRING "]]"), L"wchar std::wstring");
         LOG_ERROR(std::wstring(L"[ERROR [" PRF_W_STRING "]]"), L"wchar std::wstring");
     }
     {
-        LOG_TRACE(L"[VAL [" PRF_W_STRING "] [%" PRId8  "]]", L"test -128", -128);
-        LOG_TRACE(L"[VAL [" PRF_W_STRING "] [%" PRId16 "]]", L"test -32767", -32767);
-        LOG_TRACE(L"[VAL [" PRF_W_STRING "] [%" PRId32 "]]", L"test -2147483647", -2147483647);
+        LOG_INFO(L"[VAL [" PRF_W_STRING "] [%" PRId8  "]]", L"test -128", -128);
+        LOG_INFO(L"[VAL [" PRF_W_STRING "] [%" PRId16 "]]", L"test -32767", -32767);
+        LOG_INFO(L"[VAL [" PRF_W_STRING "] [%" PRId32 "]]", L"test -2147483647", -2147483647);
 
-        LOG_TRACE(L"[VAL [" PRF_W_STRING "] [%" PRIu8  "]]", L"test 255", 255);
-        LOG_TRACE(L"[VAL [" PRF_W_STRING "] [%" PRIu16 "]]", L"test 65535", 65535);
-        LOG_TRACE(L"[VAL [" PRF_W_STRING "] [%" PRIu32 "]]", L"test 4294967295", 4294967295);
+        LOG_INFO(L"[VAL [" PRF_W_STRING "] [%" PRIu8  "]]", L"test 255", 255);
+        LOG_INFO(L"[VAL [" PRF_W_STRING "] [%" PRIu16 "]]", L"test 65535", 65535);
+        LOG_INFO(L"[VAL [" PRF_W_STRING "] [%" PRIu32 "]]", L"test 4294967295", 4294967295);
     }
     {
-        LOG_TRACE(std::string("[TRACE std::string [%" PRIu64 "] [" PRF_CH_STRING "]]"), 33ull, "test 33");
         LOG_INFO(std::string("[INFO  std::string [%" PRIu64 "] [" PRF_CH_STRING "]]"), 34ull, "test 34");
         LOG_ERROR(std::string("[ERROR std::string [%" PRIu64 "] [" PRF_CH_STRING "]]"), 35ull, "test 35");
 
-        LOG_TRACE(std::wstring(L"[TRACE std::wstring [%" PRId64 "] [" PRF_W_STRING "]]"), 36ll, L"test 36");
         LOG_INFO(std::wstring(L"[INFO  std::wstring [%" PRId64 "] [" PRF_W_STRING "]]"), 37ll, L"test 37");
         LOG_ERROR(std::wstring(L"[ERROR std::wstring [%" PRId64 "] [" PRF_W_STRING "]]"), 38ll, L"test 38");
     }
     {
-        LOG_TRACE(std::string("[TEST  CH STR PRId64 [" PRF_CH_STRING "] [%" PRId64 "]]"), "9223372036854775807", 0x7FFFFFFFFFFFFFFFll);
-        LOG_TRACE(std::string("[TEST  CH PRId64 STR [%" PRId64 "] [" PRF_CH_STRING "]]"), 0x7FFFFFFFFFFFFFFFll, "9223372036854775807");
+        LOG_INFO(std::string("[TEST  CH STR PRId64 [" PRF_CH_STRING "] [%" PRId64 "]]"), "9223372036854775807", 0x7FFFFFFFFFFFFFFFll);
+        LOG_INFO(std::string("[TEST  CH PRId64 STR [%" PRId64 "] [" PRF_CH_STRING "]]"), 0x7FFFFFFFFFFFFFFFll, "9223372036854775807");
 
-        LOG_TRACE(std::wstring(L"[TEST WCH STR PRId64 [" PRF_W_STRING L"] [%" TOWSTRING(PRId64) L"]]"), L"9223372036854775807", 0x7FFFFFFFFFFFFFFFll);
-        LOG_TRACE(std::wstring(L"[TEST WCH PRId64 STR [%" TOWSTRING(PRId64) L"] [" PRF_W_STRING L"]]"), 0x7FFFFFFFFFFFFFFFll, L"9223372036854775807");
+        LOG_INFO(std::wstring(L"[TEST WCH STR PRId64 [" PRF_W_STRING L"] [%" TOWSTRING(PRId64) L"]]"), L"9223372036854775807", 0x7FFFFFFFFFFFFFFFll);
+        LOG_INFO(std::wstring(L"[TEST WCH PRId64 STR [%" TOWSTRING(PRId64) L"] [" PRF_W_STRING L"]]"), 0x7FFFFFFFFFFFFFFFll, L"9223372036854775807");
 
-        LOG_TRACE(std::string("[TEST  CH STR PRId64 [" PRF_CH_STRING "] [%" PRId64 "]]"), "0", 0ll);
-        LOG_TRACE(std::string("[TEST  CH PRId64 STR [%" PRId64 "] [" PRF_CH_STRING "]]"), 0ll, "0");
+        LOG_INFO(std::string("[TEST  CH STR PRId64 [" PRF_CH_STRING "] [%" PRId64 "]]"), "0", 0ll);
+        LOG_INFO(std::string("[TEST  CH PRId64 STR [%" PRId64 "] [" PRF_CH_STRING "]]"), 0ll, "0");
 
-        LOG_TRACE(std::wstring(L"[TEST WCH STR PRId64 [" PRF_W_STRING L"] [%" TOWSTRING(PRId64) L"]]"), L"0", 0ll);
-        LOG_TRACE(std::wstring(L"[TEST WCH PRId64 STR [%" TOWSTRING(PRId64) L"] [" PRF_W_STRING L"]]"), 0ll, L"0");
+        LOG_INFO(std::wstring(L"[TEST WCH STR PRId64 [" PRF_W_STRING L"] [%" TOWSTRING(PRId64) L"]]"), L"0", 0ll);
+        LOG_INFO(std::wstring(L"[TEST WCH PRId64 STR [%" TOWSTRING(PRId64) L"] [" PRF_W_STRING L"]]"), 0ll, L"0");
 
-        LOG_TRACE(std::string("[TEST  CH STR PRId64 [" PRF_CH_STRING "] [%" PRId64 "]]"), "60", 60ll);
-        LOG_TRACE(std::string("[TEST  CH PRId64 STR [%" PRId64 "] [" PRF_CH_STRING "]]"), 60ll, "60");
+        LOG_INFO(std::string("[TEST  CH STR PRId64 [" PRF_CH_STRING "] [%" PRId64 "]]"), "60", 60ll);
+        LOG_INFO(std::string("[TEST  CH PRId64 STR [%" PRId64 "] [" PRF_CH_STRING "]]"), 60ll, "60");
 
-        LOG_TRACE(std::wstring(L"[TEST WCH STR PRId64 [" PRF_W_STRING L"] [%" TOWSTRING(PRId64) L"]]"), L"60", 60ll);
-        LOG_TRACE(std::wstring(L"[TEST WCH PRId64 STR [%" TOWSTRING(PRId64) L"] [" PRF_W_STRING L"]]"), 60ll, L"60");
+        LOG_INFO(std::wstring(L"[TEST WCH STR PRId64 [" PRF_W_STRING L"] [%" TOWSTRING(PRId64) L"]]"), L"60", 60ll);
+        LOG_INFO(std::wstring(L"[TEST WCH PRId64 STR [%" TOWSTRING(PRId64) L"] [" PRF_W_STRING L"]]"), 60ll, L"60");
     }
-    LOG_TRACE("------------------- End Log overload test -------------------");
+    LOG_INFO("------------------- End Log overload test -------------------");
 }
 
 static bool test_guid()
@@ -477,16 +465,16 @@ public:
     TestThreadsLog(TestThreadsLog&) = delete;
     TestThreadsLog& operator=(const TestThreadsLog&) = delete;
     TestThreadsLog() {
-        for (size_t i = 0; i < 100; i++)
+        for (size_t index = 0; index < 100; index++)
         {
             const int32_t threadid = m_threadsStart++;
             auto RunThread = [threadid](TestThreadsLog* pThis) {
                 pThis->m_threadsRun++;
-                LOG_TRACE("START ________ thread id %04" PRId32, threadid);
+                LOG_INFO("START ________ thread id %04" PRId32, threadid);
                 try {
                     for (int64_t i = 0; i < 300; i++) {
                         const decltype(i)& ind = i;
-                        LOG_TRACE("[%04" PRId32 "] [%08" PRId64 "]", threadid, ind);
+                        LOG_INFO("[%04" PRId32 "] [%08" PRId64 "]", threadid, ind);
                     }
                 }
                 catch (...) {
@@ -494,7 +482,7 @@ public:
                 }
                 pThis->m_threadsRun--;
                 pThis->m_threadsStart--;
-                LOG_TRACE("EXIT ________ thread id %04" PRId32, threadid);
+                LOG_INFO("EXIT ________ thread id %04" PRId32, threadid);
             };
             (std::thread(RunThread, this)).detach();
         }
@@ -528,7 +516,7 @@ public:
             const int32_t threadid = m_threadsStart++;
             auto RunThread = [threadid](TestThreadsStringFormat* pThis) {
                 pThis->m_threadsRun++;
-                //LOG_TRACE("START ________ thread id %04" PRId32, threadid);
+                //LOG_INFO("START ________ thread id %04" PRId32, threadid);
 				try {
 					for (int64_t i = 0; i < 1000; i++) {
                         {
@@ -559,7 +547,7 @@ public:
 				}
                 pThis->m_threadsRun--;
                 pThis->m_threadsStart--;
-                //LOG_TRACE("EXIT ________ thread id %04" PRId32, threadid);
+                //LOG_INFO("EXIT ________ thread id %04" PRId32, threadid);
             };
             (std::thread(RunThread, this)).detach();
         }
@@ -1009,7 +997,7 @@ static inline void test() {
     _ASSERT(s4 == std::wstring(L"012"));
 }
 
-static void FormatStringFTest()
+static inline void FormatStringFTest()
 {
     CLogger::Instance().FormatStringF("szFmt %s %s", "args", "...");
 
@@ -1025,21 +1013,21 @@ static void FormatStringFTest()
     //    FormatStringF(xf.GetFilePtr(), L"szFmt %s %s", L"args", L"...");
     //}
 
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, "szFmt %s", "args...");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, std::string("szFmt %s"), "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, "szFmt %s", "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, std::string("szFmt %s"), "args...");
 
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, L"szFmt %ls", L"args...");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, std::wstring(L"szFmt %ls"), L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, L"szFmt %ls", L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, std::wstring(L"szFmt %ls"), L"args...");
 
     char arr1[] = "hello %s";
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, arr1, "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, arr1, "args...");
     wchar_t arr2[] = L"hello %s";
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, arr2, L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, arr2, L"args...");
 
     const std::string cp1("szFmt %s");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, cp1, "args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, cp1, "args...");
     const std::wstring cp2(L"szFmt %ls");
-    CLogger::Instance().LogMess( CLogger::eLogLevel::Trace, "szFile", "szFunc", 0, cp2, L"args...");
+    CLogger::Instance().LogMess( CLogger::eLogLevel::Info, "szFile", "szFunc", 0, cp2, L"args...");
 
 }
 
@@ -1103,7 +1091,7 @@ int main(/*int argc, char *argv[]*/) {
     try {
 
 #if 0
-        LOG_TRACE("------------------- Start String format threads test -------------------");
+        LOG_INFO("------------------- Start String format threads test -------------------");
         {
             const auto startTime = std::chrono::high_resolution_clock::now();
             TestThreadsStringFormat testThread;
@@ -1112,9 +1100,9 @@ int main(/*int argc, char *argv[]*/) {
             }
             const auto finishTime = std::chrono::high_resolution_clock::now();
             const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(finishTime - startTime).count();
-            LOG_TRACE("------------------- Test take %.6f sec. -------------------", duration);
+            LOG_INFO("------------------- Test take %.6f sec. -------------------", duration);
         }
-        LOG_TRACE("------------------- End  String format threads test -------------------");
+        LOG_INFO("------------------- End  String format threads test -------------------");
 #endif
 
         LOG_INITIALIZE();
@@ -1354,7 +1342,7 @@ int main(/*int argc, char *argv[]*/) {
 
 
 #if 0
-        LOG_TRACE("------------------- Start Log threads test -------------------");
+        LOG_INFO("------------------- Start Log threads test -------------------");
        {
             const auto startTime = std::chrono::high_resolution_clock::now();
             TestThreadsLog testThread;
@@ -1363,9 +1351,9 @@ int main(/*int argc, char *argv[]*/) {
             }
             const auto finishTime = std::chrono::high_resolution_clock::now();
             const auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(finishTime - startTime).count();
-            LOG_TRACE("------------------- Test take %.6f sec. -------------------", duration);
+            LOG_INFO("------------------- Test take %.6f sec. -------------------", duration);
        }
-       LOG_TRACE("------------------- End Log threads test -------------------");
+       LOG_INFO("------------------- End Log threads test -------------------");
 #endif
 
        LOG_INFO(info::GetVersionString(executableName));

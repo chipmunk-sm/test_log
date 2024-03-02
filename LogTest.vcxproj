@@ -58,7 +58,7 @@
     <TargetName>LogTest</TargetName>
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
-    <ClangTidyChecks>-clang-diagnostic-c++98-compat,-clang-diagnostic-c++98-compat-pedantic,-clang-diagnostic-format-nonliteral</ClangTidyChecks>
+    <ClangTidyChecks>-clang-diagnostic-c++98-compat,-clang-diagnostic-c++98-compat-pedantic,-clang-diagnostic-format-nonliteral,-clang-diagnostic-c++98-compat-local-type-template-args</ClangTidyChecks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>release\</OutDir>
@@ -67,7 +67,7 @@
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <LinkIncremental>false</LinkIncremental>
     <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
-    <ClangTidyChecks>-clang-diagnostic-c++98-compat,-clang-diagnostic-c++98-compat-pedantic,-clang-diagnostic-format-nonliteral</ClangTidyChecks>
+    <ClangTidyChecks>-clang-diagnostic-c++98-compat,-clang-diagnostic-c++98-compat-pedantic,-clang-diagnostic-format-nonliteral,-clang-diagnostic-c++98-compat-local-type-template-args</ClangTidyChecks>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <QtInstall>5.15.2_msvc2019_64</QtInstall>

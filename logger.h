@@ -1046,10 +1046,10 @@ namespace info {
         STRAPPEND(appv, quoteStr(_MSC_FULL_VER));
         STRAPPEND(appv, ") ");
 
-#if (_MSC_VER >= 1936)
+#if (_MSC_VER > 1939)
         STRAPPEND(appv, " VS??");
 #error undefined
-#elif (_MSC_VER >= 1935)
+#elif (_MSC_VER >= 1939)
         STRAPPEND(appv, "VS2022");
 #elif(_MSC_VER >= 1920)
         STRAPPEND(appv, "VS2019");
@@ -1107,12 +1107,6 @@ namespace info {
 //**************************************
 class CLogger
 {
-public:
-    enum class eLogLevel {
-        Error = 0,
-        Info = 1,
-        Trace = 2
-    };
 
 public:
     static CLogger& Instance()
@@ -1120,10 +1114,13 @@ public:
         static CLogger thisInstance;
         return thisInstance;
     }
-    CLogger(const CLogger&) = delete;
-    CLogger(const CLogger&&) = delete;
-    CLogger& operator=(const CLogger&) = delete;
-    CLogger& operator=(const CLogger&&) = delete;
+public:
+    enum class eLogLevel : int
+    {
+        Error,
+        Warning,
+        Info
+    };
 
 private:
     explicit CLogger()
@@ -1158,6 +1155,11 @@ private:
         if (m_dummyFile != nullptr)
             fclose(m_dummyFile);
     }
+
+    CLogger(const CLogger&) = delete; // copy constructor
+    CLogger& operator=(const CLogger&) = delete; // copy assignment
+    CLogger(CLogger&&) = delete; // move constructor
+    CLogger& operator=(CLogger&&) = delete; // move assignment
 
 public:
 
@@ -1304,18 +1306,18 @@ private:
     const wchar_t* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::wstring&)
     {
         switch (lvl) {
-        case CLogger::eLogLevel::Error: return L";E;";
-        case CLogger::eLogLevel::Info:  return L";I;";
-        case CLogger::eLogLevel::Trace: return L";T;";
+        case CLogger::eLogLevel::Error:   return L";E;";
+        case CLogger::eLogLevel::Warning: return L";W;";
+        case CLogger::eLogLevel::Info:    return L";I;";
         }
         return L";U;";
     }
     const char* GetErrorLevelStr(const CLogger::eLogLevel lvl, const std::string&)
     {
         switch (lvl) {
-        case CLogger::eLogLevel::Error: return ";E;";
-        case CLogger::eLogLevel::Info:  return ";I;";
-        case CLogger::eLogLevel::Trace: return ";T;";
+        case CLogger::eLogLevel::Error: return    ";E;";
+        case CLogger::eLogLevel::Warning:  return ";W;";
+        case CLogger::eLogLevel::Info: return     ";I;";
         }
         return ";U;";
     }
@@ -1464,7 +1466,7 @@ private:
 private:
     FILE* m_dummyFile = nullptr;
     std::mutex  m_mutexLog;
-    eLogLevel   m_logLevel = eLogLevel::Trace;
+    eLogLevel   m_logLevel = eLogLevel::Error;
     //const int32_t m_logFileCount = 3 + 2;
     bool m_displayExtInfo = false;
     bool m_bExit = false;
@@ -1472,9 +1474,9 @@ private:
 
 };
 
-#define LOG_TRACE(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Trace, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
-#define LOG_INFO(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Info,  __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
 #define LOG_ERROR(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Error, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
+#define LOG_WARNING(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Warning, __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
+#define LOG_INFO(messfmt, ...) CLogger::Instance().LogMess(CLogger::eLogLevel::Info,  __FILE__, __FUNCTION__, __LINE__, messfmt, ##__VA_ARGS__)
 
 //**************************************
 //~ CLogger
